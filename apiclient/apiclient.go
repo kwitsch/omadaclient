@@ -3,42 +3,43 @@ package apiclient
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 
 	"github.com/kwitsch/omadaclient/httpclient"
+	"github.com/kwitsch/omadaclient/log"
 	"github.com/kwitsch/omadaclient/model"
 	"github.com/kwitsch/omadaclient/utils"
 )
 
 type Apiclient struct {
-	url   string
-	http  *http.Client
-	id    string
-	token string
-	role  int
+	url       string
+	http      *http.Client
+	id        string
+	loginData model.Login
+	l         *log.Log
 }
 
-func New(url string, skipVerify bool) (*Apiclient, error) {
+func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
+	l := log.New("OmadaApi", verbose)
 	http, err := httpclient.New(skipVerify)
 	if err != nil {
-		return nil, err
+		return nil, l.E(err)
 	}
 	result := Apiclient{
 		url:  url,
 		http: http,
+		l:    l,
 	}
 
 	ai, err := result.ApiInfo()
 	if err != nil {
-		return nil, err
+		return nil, result.l.E(err)
 	}
 
 	if ai.OmadacId == "" {
-		return nil, errors.New("Couldn't optain Omada ID.")
+		return nil, result.l.E("Couldn't optain Omada ID.")
 	}
 
 	result.id = ai.OmadacId
@@ -47,21 +48,24 @@ func New(url string, skipVerify bool) (*Apiclient, error) {
 }
 
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
+	ac.l.V("ApiInfo")
 	resp, err := ac.http.Get(ac.url + "/api/info")
 	if err != nil {
-		return nil, err
+		return nil, ac.l.E(err)
 	}
 	defer resp.Body.Close()
 
 	var result model.ApiInfoResponse
-	if err := unmarshalResponse(resp, &result); err != nil {
-		return nil, err
+	if err := ac.unmarshalResponse(resp, &result); err != nil {
+		return nil, ac.l.E(err)
 	}
 
+	ac.l.Return(result.Result)
 	return &result.Result, nil
 }
 
 func (ac *Apiclient) Login(username, password string) error {
+	ac.l.V("Login")
 	bodyData := `{
 		"username": "` + username + `",
 		"password": "` + password + `"
@@ -69,30 +73,32 @@ func (ac *Apiclient) Login(username, password string) error {
 
 	var result model.LoginResponse
 	if err := ac.request("POST", "login", bodyData, &result); err != nil {
-		return err
+		return ac.l.E(err)
 	}
 
 	if result.Result.Token == "" {
-		return errors.New("Couldn't optain Logintoken.")
+		return ac.l.E("Couldn't optain Logintoken.")
 	}
 
-	ac.token = result.Result.Token
-	ac.role = result.Result.RoleType
+	ac.loginData = result.Result
+	ac.l.Return(result.Msg)
 
 	return nil
 }
 
 func (ac *Apiclient) LoginStatus() (bool, error) {
+	ac.l.V("LoginStatus")
 	var result model.LoginStatusResponse
 	if err := ac.request("GET", "loginStatus", "", &result); err != nil {
-		return false, err
+		return false, ac.l.E(err)
 	}
 
+	ac.l.Return(result.Result.Login)
 	return result.Result.Login, nil
 }
 
 func (ac *Apiclient) request(methode, endpoint, body string, result interface{}) error {
-	if endpoint != "login" && ac.token == "" {
+	if endpoint != "login" && ac.loginData.Token == "" {
 		return utils.NewError("Not logged in yet.")
 	}
 
@@ -106,8 +112,8 @@ func (ac *Apiclient) request(methode, endpoint, body string, result interface{})
 		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	}
 
-	if ac.token != "" {
-		request.Header.Set("Csrf-Token", ac.token)
+	if ac.loginData.Token != "" {
+		request.Header.Set("Csrf-Token", ac.loginData.Token)
 	}
 
 	resp, err := ac.http.Do(request)
@@ -116,7 +122,7 @@ func (ac *Apiclient) request(methode, endpoint, body string, result interface{})
 	}
 	defer resp.Body.Close()
 
-	if err := unmarshalResponse(resp, result); err != nil {
+	if err := ac.unmarshalResponse(resp, result); err != nil {
 		return err
 	}
 
@@ -127,7 +133,7 @@ func (ac *Apiclient) getPath(endPoint string) string {
 	return ac.url + "/" + ac.id + "/api/v2/" + endPoint
 }
 
-func unmarshalResponse(resp *http.Response, result interface{}) error {
+func (ac *Apiclient) unmarshalResponse(resp *http.Response, result interface{}) error {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -137,23 +143,23 @@ func unmarshalResponse(resp *http.Response, result interface{}) error {
 		return err
 	}
 
-	fmt.Println("- Debug Request:", resp.Request.URL.String())
-	fmt.Println("-- Debug Response:", string(body))
+	ac.l.V("Http Request:", resp.Request.URL.String())
+	ac.l.V("Http Response:", body)
 
-	if err := testResponse(result); err != nil {
+	if err := ac.testResponse(result); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func testResponse(respObj interface{}) error {
+func (ac *Apiclient) testResponse(respObj interface{}) error {
 	rv := reflect.ValueOf(respObj)
 	if rv.Kind() == reflect.Ptr {
 		rv = rv.Elem()
 	}
 	if rv.Kind() != reflect.Struct {
-		return errors.New("Response is not a valid struct")
+		return utils.NewError("Response is not a valid struct")
 	}
 	ecF := rv.FieldByName("ErrorCode")
 	if ecF.IsValid() {
@@ -170,6 +176,6 @@ func testResponse(respObj interface{}) error {
 		}
 
 	} else {
-		return errors.New("ErrorCode is missing")
+		return utils.NewError("ErrorCode is missing")
 	}
 }
