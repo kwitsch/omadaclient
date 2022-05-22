@@ -1,10 +1,10 @@
 package apiclient
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -16,9 +16,10 @@ import (
 
 type Apiclient struct {
 	url   string
+	http  *http.Client
 	id    string
 	token string
-	http  *http.Client
+	role  int
 }
 
 func New(url string, skipVerify bool) (*Apiclient, error) {
@@ -26,51 +27,108 @@ func New(url string, skipVerify bool) (*Apiclient, error) {
 	if err != nil {
 		return nil, err
 	}
+	result := Apiclient{
+		url:  url,
+		http: http,
+	}
 
-	id, err := getId(url, http)
+	ai, err := result.ApiInfo()
 	if err != nil {
 		return nil, err
 	}
 
-	result := Apiclient{
-		url:  url,
-		id:   id,
-		http: http,
+	if ai.OmadacId == "" {
+		return nil, errors.New("Couldn't optain Omada ID.")
 	}
 
-	fmt.Println("Optained id", id, "for", url)
+	result.id = ai.OmadacId
+
 	return &result, nil
 }
 
-func (ac *Apiclient) Login(username, password string) (bool, error) {
-	return true, nil
-}
-
-func (ac *Apiclient) getPath(endPoint string) string {
-	return ac.url
-}
-
-func getId(url string, http *http.Client) (string, error) {
-	resp, err := http.Get(url + "/api/info")
+func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
+	resp, err := ac.http.Get(ac.url + "/api/info")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var result model.ApiInfoResponse
-	if err := unmarshalResponse(resp.Body, &result); err != nil {
-		return "", err
+	if err := unmarshalResponse(resp, &result); err != nil {
+		return nil, err
 	}
 
-	if result.Result.OmadacId == "" {
-		return "", errors.New("Couldn't optain Omada ID.")
-	}
-
-	return result.Result.OmadacId, nil
+	return &result.Result, nil
 }
 
-func unmarshalResponse(r io.Reader, result interface{}) error {
-	body, err := ioutil.ReadAll(r)
+func (ac *Apiclient) Login(username, password string) error {
+	bodyData := `{
+		"username": "` + username + `",
+		"password": "` + password + `"
+	}`
+
+	var result model.LoginResponse
+	if err := ac.request("POST", "login", bodyData, &result); err != nil {
+		return err
+	}
+
+	if result.Result.Token == "" {
+		return errors.New("Couldn't optain Logintoken.")
+	}
+
+	ac.token = result.Result.Token
+	ac.role = result.Result.RoleType
+
+	return nil
+}
+
+func (ac *Apiclient) LoginStatus() (bool, error) {
+	var result model.LoginStatusResponse
+	if err := ac.request("GET", "loginStatus", "", &result); err != nil {
+		return false, err
+	}
+
+	return result.Result.Login, nil
+}
+
+func (ac *Apiclient) request(methode, endpoint, body string, result interface{}) error {
+	if endpoint != "login" && ac.token == "" {
+		return utils.NewError("Not logged in yet.")
+	}
+
+	var bodyData = []byte(body)
+	request, err := http.NewRequest(methode, ac.getPath(endpoint), bytes.NewBuffer(bodyData))
+	if err != nil {
+		return err
+	}
+
+	if methode == "POST" {
+		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	}
+
+	if ac.token != "" {
+		request.Header.Set("Csrf-Token", ac.token)
+	}
+
+	resp, err := ac.http.Do(request)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := unmarshalResponse(resp, result); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ac *Apiclient) getPath(endPoint string) string {
+	return ac.url + "/" + ac.id + "/api/v2/" + endPoint
+}
+
+func unmarshalResponse(resp *http.Response, result interface{}) error {
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -78,6 +136,9 @@ func unmarshalResponse(r io.Reader, result interface{}) error {
 	if err := json.Unmarshal(body, &result); err != nil {
 		return err
 	}
+
+	fmt.Println("- Debug Request:", resp.Request.URL.String())
+	fmt.Println("-- Debug Response:", string(body))
 
 	if err := testResponse(result); err != nil {
 		return err
