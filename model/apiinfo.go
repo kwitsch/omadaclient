@@ -10,6 +10,6 @@ type ApiInfo struct {
 }
 
 type ApiInfoResponse struct {
-	ApiResponse
+	ApiHeader
 	Result ApiInfo `json:"result"`
 }

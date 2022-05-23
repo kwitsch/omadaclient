@@ -6,6 +6,6 @@ type Login struct {
 }
 
 type LoginResponse struct {
-	ApiResponse
+	ApiHeader
 	Result Login `json:"result"`
 }

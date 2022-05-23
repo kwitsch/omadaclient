@@ -5,6 +5,6 @@ type LoginStatus struct {
 }
 
 type LoginStatusResponse struct {
-	ApiResponse
+	ApiHeader
 	Result LoginStatus `json:"result"`
 }

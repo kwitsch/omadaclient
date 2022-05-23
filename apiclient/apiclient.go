@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 
 	"github.com/kwitsch/omadaclient/httpclient"
 	"github.com/kwitsch/omadaclient/log"
@@ -97,7 +96,7 @@ func (ac *Apiclient) LoginStatus() (bool, error) {
 	return result.Result.Login, nil
 }
 
-func (ac *Apiclient) request(methode, endpoint, body string, result interface{}) error {
+func (ac *Apiclient) request(methode, endpoint, body string, result model.ApiHeaderMethodes) error {
 	if endpoint != "login" && ac.loginData.Token == "" {
 		return utils.NewError("Not logged in yet.")
 	}
@@ -133,7 +132,7 @@ func (ac *Apiclient) getPath(endPoint string) string {
 	return ac.url + "/" + ac.id + "/api/v2/" + endPoint
 }
 
-func (ac *Apiclient) unmarshalResponse(resp *http.Response, result interface{}) error {
+func (ac *Apiclient) unmarshalResponse(resp *http.Response, result model.ApiHeaderMethodes) error {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -153,29 +152,11 @@ func (ac *Apiclient) unmarshalResponse(resp *http.Response, result interface{}) 
 	return nil
 }
 
-func (ac *Apiclient) testResponse(respObj interface{}) error {
-	rv := reflect.ValueOf(respObj)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
+func (ac *Apiclient) testResponse(respObj model.ApiHeaderMethodes) error {
+	if !respObj.IsSuccess() {
+		head := respObj.GetHead()
+		return utils.NewError("ErrorCode:", head.ErrorCode, "Message:", head.Msg)
 	}
-	if rv.Kind() != reflect.Struct {
-		return utils.NewError("Response is not a valid struct")
-	}
-	ecF := rv.FieldByName("ErrorCode")
-	if ecF.IsValid() {
-		ecV := ecF.Int()
-		if ecV == 0 {
-			return nil
-		} else {
-			mF := rv.FieldByName("Msg")
-			if mF.IsValid() {
-				return utils.NewError("ErrorCode:", ecV, "Message:", mF.String())
-			} else {
-				return utils.NewError("ErrorCode:", ecV)
-			}
-		}
 
-	} else {
-		return utils.NewError("ErrorCode is missing")
-	}
+	return nil
 }
