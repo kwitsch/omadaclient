@@ -10,7 +10,6 @@ type ApiInfo struct {
 }
 
 type ApiInfoResponse struct {
-	ErrorCode int     `json:"errorCode"`
-	Msg       string  `json:"msg"`
-	Result    ApiInfo `json:"result"`
+	ApiResponse
+	Result ApiInfo `json:"result"`
 }

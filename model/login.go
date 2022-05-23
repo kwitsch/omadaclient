@@ -6,7 +6,6 @@ type Login struct {
 }
 
 type LoginResponse struct {
-	ErrorCode int    `json:"errorCode"`
-	Msg       string `json:"msg"`
-	Result    Login  `json:"result"`
+	ApiResponse
+	Result Login `json:"result"`
 }
