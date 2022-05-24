@@ -1,7 +1,6 @@
 package apiclient
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 
 type Apiclient struct {
 	url       string
-	http      *http.Client
+	http      *httpclient.HttpClient
 	id        string
 	loginData model.Login
 	l         *log.Log
@@ -22,7 +21,7 @@ type Apiclient struct {
 
 func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
-	http, err := httpclient.New(skipVerify)
+	http, err := httpclient.NewClient(url, skipVerify)
 	if err != nil {
 		return nil, l.E(err)
 	}
@@ -48,11 +47,10 @@ func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
 
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	ac.l.V("ApiInfo")
-	resp, err := ac.http.Get(ac.url + "/api/info")
+	resp, err := ac.http.Get("/api/info")
 	if err != nil {
 		return nil, ac.l.E(err)
 	}
-	defer resp.Body.Close()
 
 	var result model.ApiInfoResponse
 	if err := ac.unmarshalResponse(resp, &result); err != nil {
@@ -71,7 +69,7 @@ func (ac *Apiclient) Login(username, password string) error {
 	}`
 
 	var result model.LoginResponse
-	if err := ac.request("POST", "login", bodyData, &result); err != nil {
+	if err := ac.post("login", bodyData, &result); err != nil {
 		return ac.l.E(err)
 	}
 
@@ -80,6 +78,7 @@ func (ac *Apiclient) Login(username, password string) error {
 	}
 
 	ac.loginData = result.Result
+	ac.http.SetToken(result.Result.Token)
 	ac.l.Return(result.Msg)
 
 	return nil
@@ -88,7 +87,7 @@ func (ac *Apiclient) Login(username, password string) error {
 func (ac *Apiclient) LoginStatus() (bool, error) {
 	ac.l.V("LoginStatus")
 	var result model.LoginStatusResponse
-	if err := ac.request("GET", "loginStatus", "", &result); err != nil {
+	if err := ac.get("loginStatus", &result); err != nil {
 		return false, ac.l.E(err)
 	}
 
@@ -96,30 +95,39 @@ func (ac *Apiclient) LoginStatus() (bool, error) {
 	return result.Result.Login, nil
 }
 
-func (ac *Apiclient) request(methode, endpoint, body string, result model.ApiHeaderMethodes) error {
+func (ac *Apiclient) Logout() error {
+	ac.l.V("Logout")
+	_, err := ac.http.Post(ac.getPath("logout"), "")
+	ac.l.Return("Success")
+	return err
+}
+
+func (ac *Apiclient) post(endpoint, body string, result model.ApiHeaderMethodes) error {
 	if endpoint != "login" && ac.loginData.Token == "" {
 		return utils.NewError("Not logged in yet.")
 	}
 
-	var bodyData = []byte(body)
-	request, err := http.NewRequest(methode, ac.getPath(endpoint), bytes.NewBuffer(bodyData))
+	resp, err := ac.http.Post(ac.getPath(endpoint), body)
 	if err != nil {
 		return err
 	}
 
-	if methode == "POST" {
-		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	if err := ac.unmarshalResponse(resp, result); err != nil {
+		return err
 	}
 
-	if ac.loginData.Token != "" {
-		request.Header.Set("Csrf-Token", ac.loginData.Token)
+	return nil
+}
+
+func (ac *Apiclient) get(endpoint string, result model.ApiHeaderMethodes) error {
+	if endpoint != "login" && ac.loginData.Token == "" {
+		return utils.NewError("Not logged in yet.")
 	}
 
-	resp, err := ac.http.Do(request)
+	resp, err := ac.http.Get(ac.getPath(endpoint))
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
 	if err := ac.unmarshalResponse(resp, result); err != nil {
 		return err
@@ -129,10 +137,12 @@ func (ac *Apiclient) request(methode, endpoint, body string, result model.ApiHea
 }
 
 func (ac *Apiclient) getPath(endPoint string) string {
-	return ac.url + "/" + ac.id + "/api/v2/" + endPoint
+	return "/" + ac.id + "/api/v2/" + endPoint
 }
 
 func (ac *Apiclient) unmarshalResponse(resp *http.Response, result model.ApiHeaderMethodes) error {
+	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
