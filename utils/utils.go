@@ -21,12 +21,14 @@ func ToString(params ...interface{}) string {
 			result += string(b)
 		} else {
 			rv := reflect.ValueOf(p)
-			if rv.Kind() == reflect.Struct {
+			if rv.Kind() == reflect.Bool ||
+				rv.Kind() == reflect.String ||
+				rv.Kind() == reflect.Int {
+				result += fmt.Sprint(p)
+			} else {
 				if b, err := json.Marshal(p); err == nil {
 					result += string(b)
 				}
-			} else {
-				result += fmt.Sprint(p)
 			}
 		}
 	}
