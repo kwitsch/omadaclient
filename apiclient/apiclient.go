@@ -157,6 +157,27 @@ func (ac *Apiclient) Devices() (*[]model.Device, error) {
 	return &result, nil
 }
 
+func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
+	var dtype string
+	switch device.Type {
+	case "switch":
+		dtype = "switches"
+	case "gateway":
+		dtype = "gateways"
+	case "ap":
+		dtype = "eaps"
+	default:
+		return ac.l.E("Unknown device type: " + device.Type)
+	}
+
+	if err := ac.http.GetD(ac.getSitesPath(dtype+"/"+device.Mac), "", ac.headers, empty, device); err != nil {
+		return ac.l.E(err)
+	}
+
+	ac.l.Return(*device)
+	return nil
+}
+
 func (ac *Apiclient) getPath(endPoint string) string {
 	return "/" + ac.omadaId + "/api/v2/" + endPoint
 }
