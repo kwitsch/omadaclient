@@ -7,39 +7,57 @@ import (
 )
 
 type Apiclient struct {
-	url       string
-	http      *httpclient.HttpClient
-	id        string
-	headers   map[string]string
-	loginData model.Login
-	l         *log.Log
+	url      string
+	siteName string
+	username string
+	password string
+	http     *httpclient.HttpClient
+	omadaId  string
+	siteId   string
+	headers  map[string]string
+	l        *log.Log
 }
 
-func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
+func New(url, siteName, username, password string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
 	http, err := httpclient.NewClient(url, skipVerify, verbose)
 	if err != nil {
 		return nil, l.E(err)
 	}
 	result := Apiclient{
-		url:     url,
-		http:    http,
-		l:       l,
-		headers: map[string]string{},
+		url:      url,
+		siteName: siteName,
+		username: username,
+		password: password,
+		http:     http,
+		l:        l,
+		siteId:   "Default",
+		headers:  map[string]string{},
 	}
 
-	ai, err := result.ApiInfo()
+	return &result, nil
+}
+
+func (ac *Apiclient) Start() error {
+	ac.l.V("Start")
+	ai, err := ac.ApiInfo()
 	if err != nil {
-		return nil, result.l.E(err)
+		return ac.l.E(err)
 	}
 
 	if ai.OmadacId == "" {
-		return nil, result.l.E("Couldn't optain Omada ID.")
+		return ac.l.E("Couldn't optain Omada ID.")
 	}
 
-	result.id = ai.OmadacId
+	ac.omadaId = ai.OmadacId
 
-	return &result, nil
+	if err := ac.Login(); err != nil {
+		return ac.l.E(err)
+	}
+
+	ac.l.ReturnSuccess()
+
+	return nil
 }
 
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
@@ -54,11 +72,11 @@ func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	return &result, nil
 }
 
-func (ac *Apiclient) Login(username, password string) error {
+func (ac *Apiclient) Login() error {
 	ac.l.V("Login")
 	bodyData := `{
-		"username": "` + username + `",
-		"password": "` + password + `"
+		"username": "` + ac.username + `",
+		"password": "` + ac.password + `"
 	}`
 
 	var result model.Login
@@ -70,7 +88,6 @@ func (ac *Apiclient) Login(username, password string) error {
 		return ac.l.E("Couldn't optain Logintoken.")
 	}
 
-	ac.loginData = result
 	ac.headers = map[string]string{"Csrf-Token": result.Token}
 	ac.l.ReturnSuccess()
 
@@ -98,5 +115,5 @@ func (ac *Apiclient) Logout() error {
 }
 
 func (ac *Apiclient) getPath(endPoint string) string {
-	return "/" + ac.id + "/api/v2/" + endPoint
+	return "/" + ac.omadaId + "/api/v2/" + endPoint
 }
