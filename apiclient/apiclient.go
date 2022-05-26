@@ -146,6 +146,17 @@ func (ac *Apiclient) Logout() error {
 	return nil
 }
 
+func (ac *Apiclient) Devices() (*[]model.Device, error) {
+	ac.l.V("Devices")
+	var result []model.Device
+	if err := ac.http.GetD(ac.getSitesPath("devices"), "", ac.headers, empty, &result); err != nil {
+		return nil, ac.l.E(err)
+	}
+
+	ac.l.Return(result)
+	return &result, nil
+}
+
 func (ac *Apiclient) getPath(endPoint string) string {
 	return "/" + ac.omadaId + "/api/v2/" + endPoint
 }
