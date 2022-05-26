@@ -5,6 +5,15 @@ type UsersCurrent struct {
 	Type      int                   `json:"type"`
 	RoleType  int                   `json:"roleType"`
 	Privilege UsersCurrentPrivilege `json:"privilege"`
+	Adopt     bool                  `json:"adopt"`
+	Manage    bool                  `json:"manage"`
+	License   bool                  `json:"license"`
+	Name      string                `json:"name"`
+	Email     string                `json:"email"`
+	Alert     bool                  `json:"alert"`
+	Disaster  int                   `json:"disaster"`
+	Favorites []string              `json:"favorites"`
+	Dbnormal  bool                  `json:"dbnormal"`
 }
 
 type UsersCurrentPrivilege struct {
@@ -14,4 +23,7 @@ type UsersCurrentPrivilege struct {
 }
 
 type UsersCurrentPrivilegeSite struct {
+	Key     string `json:"key"`
+	Name    string `json:"name"`
+	Primary bool   `json:"primary"`
 }

@@ -55,6 +55,25 @@ func (ac *Apiclient) Start() error {
 		return ac.l.E(err)
 	}
 
+	cu, err := ac.UsersCurrent()
+	if err != nil {
+		return ac.l.E(err)
+	}
+
+	ac.l.V("SiteName:", ac.siteName)
+	siteAvailable := false
+	for _, v := range cu.Privilege.Sites {
+		if v.Name == ac.siteName {
+			ac.siteId = v.Key
+			siteAvailable = true
+			ac.l.V("SiteId:", ac.siteId)
+			break
+		}
+	}
+	if !siteAvailable {
+		return ac.l.E("Site " + ac.siteName + " is not available for user " + ac.username)
+	}
+
 	ac.l.ReturnSuccess()
 
 	return nil
@@ -103,6 +122,17 @@ func (ac *Apiclient) LoginStatus() (bool, error) {
 
 	ac.l.Return(result.Login)
 	return result.Login, nil
+}
+
+func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
+	ac.l.V("UsersCurrent")
+	var result model.UsersCurrent
+	if err := ac.http.GetD(ac.getPath("users/current"), "", ac.headers, &result); err != nil {
+		return nil, ac.l.E(err)
+	}
+
+	ac.l.Return(result)
+	return &result, nil
 }
 
 func (ac *Apiclient) Logout() error {
