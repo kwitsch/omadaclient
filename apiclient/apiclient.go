@@ -18,6 +18,8 @@ type Apiclient struct {
 	l        *log.Log
 }
 
+var empty = map[string]string{}
+
 func New(url, siteName, username, password string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
 	http, err := httpclient.NewClient(url, skipVerify, verbose)
@@ -82,7 +84,7 @@ func (ac *Apiclient) Start() error {
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	ac.l.V("ApiInfo")
 	var result model.ApiInfo
-	if err := ac.http.GetD("/api/info", "", ac.headers, &result); err != nil {
+	if err := ac.http.GetD("/api/info", "", ac.headers, empty, &result); err != nil {
 		return nil, ac.l.E(err)
 	}
 
@@ -99,7 +101,7 @@ func (ac *Apiclient) Login() error {
 	}`
 
 	var result model.Login
-	if err := ac.http.PostD(ac.getPath("login"), bodyData, ac.headers, &result); err != nil {
+	if err := ac.http.PostD(ac.getPath("login"), bodyData, ac.headers, empty, &result); err != nil {
 		return ac.l.E(err)
 	}
 
@@ -116,7 +118,7 @@ func (ac *Apiclient) Login() error {
 func (ac *Apiclient) LoginStatus() (bool, error) {
 	ac.l.V("LoginStatus")
 	var result model.LoginStatus
-	if err := ac.http.GetD(ac.getPath("loginStatus"), "", ac.headers, &result); err != nil {
+	if err := ac.http.GetD(ac.getPath("loginStatus"), "", ac.headers, empty, &result); err != nil {
 		return false, ac.l.E(err)
 	}
 
@@ -127,7 +129,7 @@ func (ac *Apiclient) LoginStatus() (bool, error) {
 func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 	ac.l.V("UsersCurrent")
 	var result model.UsersCurrent
-	if err := ac.http.GetD(ac.getPath("users/current"), "", ac.headers, &result); err != nil {
+	if err := ac.http.GetD(ac.getPath("users/current"), "", ac.headers, empty, &result); err != nil {
 		return nil, ac.l.E(err)
 	}
 
@@ -137,7 +139,7 @@ func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 
 func (ac *Apiclient) Logout() error {
 	ac.l.V("Logout")
-	if _, err := ac.http.Post(ac.getPath("logout"), "", ac.headers); err != nil {
+	if _, err := ac.http.Post(ac.getPath("logout"), "", ac.headers, empty); err != nil {
 		return ac.l.E(err)
 	}
 	ac.l.ReturnSuccess()
@@ -146,4 +148,8 @@ func (ac *Apiclient) Logout() error {
 
 func (ac *Apiclient) getPath(endPoint string) string {
 	return "/" + ac.omadaId + "/api/v2/" + endPoint
+}
+
+func (ac *Apiclient) getSitesPath(endPoint string) string {
+	return ac.getPath("sites/" + ac.siteId + "/" + endPoint)
 }

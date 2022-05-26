@@ -46,24 +46,24 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 	return &result, nil
 }
 
-func (c *HttpClient) Get(path, body string, headers map[string]string) (*[]byte, error) {
-	return c.request("GET", path, body, headers)
+func (c *HttpClient) Get(path, body string, headers, query map[string]string) (*[]byte, error) {
+	return c.request("GET", path, body, headers, query)
 }
 
-func (c *HttpClient) GetD(path, body string, headers map[string]string, result interface{}) error {
-	res, err := c.Get(path, body, headers)
+func (c *HttpClient) GetD(path, body string, headers, query map[string]string, result interface{}) error {
+	res, err := c.Get(path, body, headers, query)
 	if err != nil {
 		return err
 	}
 	return c.decode(*res, &result)
 }
 
-func (c *HttpClient) Post(path, body string, headers map[string]string) (*[]byte, error) {
-	return c.request("POST", path, body, headers)
+func (c *HttpClient) Post(path, body string, headers, query map[string]string) (*[]byte, error) {
+	return c.request("POST", path, body, headers, query)
 }
 
-func (c *HttpClient) PostD(path, body string, headers map[string]string, result interface{}) error {
-	res, err := c.Post(path, body, headers)
+func (c *HttpClient) PostD(path, body string, headers, query map[string]string, result interface{}) error {
+	res, err := c.Post(path, body, headers, query)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 	return aRes.GetResult(&result)
 }
 
-func (c *HttpClient) request(methode, path, body string, headers map[string]string) (*[]byte, error) {
+func (c *HttpClient) request(methode, path, body string, headers, query map[string]string) (*[]byte, error) {
 	bodyData := []byte(body)
 	url := c.url + path
 	request, err := http.NewRequest(methode, url, bytes.NewBuffer(bodyData))
@@ -92,6 +92,10 @@ func (c *HttpClient) request(methode, path, body string, headers map[string]stri
 
 	for k, v := range headers {
 		request.Header.Set(k, v)
+	}
+
+	for k, v := range query {
+		request.URL.Query().Set(k, v)
 	}
 
 	c.l.V("Request:", url)
