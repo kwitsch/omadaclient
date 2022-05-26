@@ -1,34 +1,31 @@
 package apiclient
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/kwitsch/omadaclient/httpclient"
 	"github.com/kwitsch/omadaclient/log"
 	"github.com/kwitsch/omadaclient/model"
-	"github.com/kwitsch/omadaclient/utils"
 )
 
 type Apiclient struct {
 	url       string
 	http      *httpclient.HttpClient
 	id        string
+	headers   map[string]string
 	loginData model.Login
 	l         *log.Log
 }
 
 func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
-	http, err := httpclient.NewClient(url, skipVerify)
+	http, err := httpclient.NewClient(url, skipVerify, verbose)
 	if err != nil {
 		return nil, l.E(err)
 	}
 	result := Apiclient{
-		url:  url,
-		http: http,
-		l:    l,
+		url:     url,
+		http:    http,
+		l:       l,
+		headers: map[string]string{},
 	}
 
 	ai, err := result.ApiInfo()
@@ -47,18 +44,14 @@ func New(url string, skipVerify, verbose bool) (*Apiclient, error) {
 
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	ac.l.V("ApiInfo")
-	resp, err := ac.http.Get("/api/info")
-	if err != nil {
+	var result model.ApiInfo
+	if err := ac.http.GetD("/api/info", "", ac.headers, &result); err != nil {
 		return nil, ac.l.E(err)
 	}
 
-	var result model.ApiInfoResponse
-	if err := ac.unmarshalResponse(resp, &result); err != nil {
-		return nil, ac.l.E(err)
-	}
+	ac.l.ReturnSuccess()
 
-	ac.l.Return(result.Result)
-	return &result.Result, nil
+	return &result, nil
 }
 
 func (ac *Apiclient) Login(username, password string) error {
@@ -68,105 +61,42 @@ func (ac *Apiclient) Login(username, password string) error {
 		"password": "` + password + `"
 	}`
 
-	var result model.LoginResponse
-	if err := ac.post("login", bodyData, &result); err != nil {
+	var result model.Login
+	if err := ac.http.PostD(ac.getPath("login"), bodyData, ac.headers, &result); err != nil {
 		return ac.l.E(err)
 	}
 
-	if result.Result.Token == "" {
+	if result.Token == "" {
 		return ac.l.E("Couldn't optain Logintoken.")
 	}
 
-	ac.loginData = result.Result
-	ac.http.SetToken(result.Result.Token)
-	ac.l.Return(result.Msg)
+	ac.loginData = result
+	ac.headers = map[string]string{"Csrf-Token": result.Token}
+	ac.l.ReturnSuccess()
 
 	return nil
 }
 
 func (ac *Apiclient) LoginStatus() (bool, error) {
 	ac.l.V("LoginStatus")
-	var result model.LoginStatusResponse
-	if err := ac.get("loginStatus", &result); err != nil {
+	var result model.LoginStatus
+	if err := ac.http.GetD(ac.getPath("loginStatus"), "", ac.headers, &result); err != nil {
 		return false, ac.l.E(err)
 	}
 
-	ac.l.Return(result.Result.Login)
-	return result.Result.Login, nil
+	ac.l.Return(result.Login)
+	return result.Login, nil
 }
 
 func (ac *Apiclient) Logout() error {
 	ac.l.V("Logout")
-	_, err := ac.http.Post(ac.getPath("logout"), "")
-	ac.l.Return("Success")
-	return err
-}
-
-func (ac *Apiclient) post(endpoint, body string, result model.ApiHeaderMethodes) error {
-	if endpoint != "login" && ac.loginData.Token == "" {
-		return utils.NewError("Not logged in yet.")
+	if _, err := ac.http.Post(ac.getPath("logout"), "", ac.headers); err != nil {
+		return ac.l.E(err)
 	}
-
-	resp, err := ac.http.Post(ac.getPath(endpoint), body)
-	if err != nil {
-		return err
-	}
-
-	if err := ac.unmarshalResponse(resp, result); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ac *Apiclient) get(endpoint string, result model.ApiHeaderMethodes) error {
-	if endpoint != "login" && ac.loginData.Token == "" {
-		return utils.NewError("Not logged in yet.")
-	}
-
-	resp, err := ac.http.Get(ac.getPath(endpoint))
-	if err != nil {
-		return err
-	}
-
-	if err := ac.unmarshalResponse(resp, result); err != nil {
-		return err
-	}
-
+	ac.l.ReturnSuccess()
 	return nil
 }
 
 func (ac *Apiclient) getPath(endPoint string) string {
 	return "/" + ac.id + "/api/v2/" + endPoint
-}
-
-func (ac *Apiclient) unmarshalResponse(resp *http.Response, result model.ApiHeaderMethodes) error {
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return err
-	}
-
-	ac.l.V("Http Request:", resp.Request.URL.String())
-	ac.l.V("Http Response:", body)
-
-	if err := ac.testResponse(result); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ac *Apiclient) testResponse(respObj model.ApiHeaderMethodes) error {
-	if !respObj.IsSuccess() {
-		head := respObj.GetHead()
-		return utils.NewError("ErrorCode:", head.ErrorCode, "Message:", head.Msg)
-	}
-
-	return nil
 }
