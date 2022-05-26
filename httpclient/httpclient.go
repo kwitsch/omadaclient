@@ -86,9 +86,7 @@ func (c *HttpClient) request(methode, path, body string, headers, query map[stri
 		return nil, err
 	}
 
-	if methode == "POST" {
-		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	}
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	for k, v := range headers {
 		request.Header.Set(k, v)
