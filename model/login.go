@@ -5,7 +5,6 @@ type Login struct {
 	Token    string `json:"token"`
 }
 
-type LoginResponse struct {
-	ApiHeader
-	Result Login `json:"result"`
+type LoginStatus struct {
+	Login bool `json:"login"`
 }

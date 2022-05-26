@@ -8,8 +8,3 @@ type ApiInfo struct {
 	SupportApp    bool   `json:"supportApp"`
 	OmadacId      string `json:"omadacId"`
 }
-
-type ApiInfoResponse struct {
-	ApiHeader
-	Result ApiInfo `json:"result"`
-}
