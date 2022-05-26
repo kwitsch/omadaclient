@@ -46,3 +46,7 @@ func (l *Log) Return(params ...interface{}) {
 		l.M("Returns:", utils.ToString(params...))
 	}
 }
+
+func (l *Log) ReturnSuccess() {
+	l.Return("Success")
+}
