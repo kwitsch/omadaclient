@@ -157,6 +157,25 @@ func (ac *Apiclient) Devices() (*[]model.Device, error) {
 	return &result, nil
 }
 
+func (ac *Apiclient) DevicesDetailed() (*[]model.Device, error) {
+	ac.l.V("DevicesDetailed")
+	devices, err := ac.Devices()
+	if err != nil {
+		return nil, ac.l.E(err)
+	}
+
+	result := []model.Device{}
+	for _, d := range *devices {
+		if err := ac.GetDeviceDetail(&d); err != nil {
+			return nil, ac.l.E(err)
+		}
+		result = append(result, d)
+	}
+
+	ac.l.Return(result)
+	return &result, nil
+}
+
 func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
 	var dtype string
 	switch device.Type {
