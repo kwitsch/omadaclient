@@ -103,8 +103,6 @@ func (c *HttpClient) request(methode, path, body string, headers map[string]stri
 
 	defer resp.Body.Close()
 
-	c.l.V("Status:", resp.StatusCode)
-
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
