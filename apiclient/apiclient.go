@@ -203,7 +203,7 @@ func (ac *Apiclient) Clients() (*[]model.Client, error) {
 	result := []model.Client{}
 	page := 1
 	params := map[string]string{
-		"currentPageSize": "50",
+		"currentPageSize": "10",
 	}
 
 	for {
