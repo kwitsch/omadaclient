@@ -203,11 +203,12 @@ func (ac *Apiclient) Clients() (*[]model.Client, error) {
 	result := []model.Client{}
 	page := 1
 	params := map[string]string{
-		"currentPage":     fmt.Sprint(page),
 		"currentPageSize": "50",
 	}
 
 	for {
+		params["currentPage"] = fmt.Sprint(page)
+
 		var hres model.Clients
 		if err := ac.http.GetD(ac.getSitesPath("clients"), "", ac.headers, params, &hres); err != nil {
 			return nil, ac.l.E(err)
@@ -217,8 +218,6 @@ func (ac *Apiclient) Clients() (*[]model.Client, error) {
 
 		if len(result) >= hres.TotalRows {
 			break
-		} else {
-			params["currentPage"] = fmt.Sprint(page)
 		}
 	}
 
