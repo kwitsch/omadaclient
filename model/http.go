@@ -7,10 +7,15 @@ type Paged struct {
 	CurrentSize int `json:"currentSize"`
 }
 
-func (p *Paged) GetPageData() *Paged {
-	return p
+func (p *Paged) GetTotalRows() int {
+	return p.TotalRows
+}
+
+func (p *Paged) GetCurrentPage() int {
+	return p.CurrentPage
 }
 
 type PageInterface interface {
-	GetPageData() *Paged
+	GetTotalRows() int
+	GetCurrentPage() int
 }

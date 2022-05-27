@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 type Clients struct {
 	Paged
 	Data       []Client `json:"data"`
@@ -59,4 +61,8 @@ type Client struct {
 	NetworkName    string `json:"networkName,omitempty"`
 	Dot1XVlan      int    `json:"dot1xVlan,omitempty"`
 	Port           int    `json:"port,omitempty"`
+}
+
+func (c *Client) GetCleanName() string {
+	return strings.ReplaceAll(c.Name, " ", "")
 }

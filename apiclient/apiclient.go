@@ -1,6 +1,8 @@
 package apiclient
 
 import (
+	"fmt"
+
 	"github.com/kwitsch/omadaclient/httpclient"
 	"github.com/kwitsch/omadaclient/log"
 	"github.com/kwitsch/omadaclient/model"
@@ -195,6 +197,32 @@ func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
 
 	ac.l.Return(*device)
 	return nil
+}
+
+func (ac *Apiclient) Clients() (*[]model.Client, error) {
+	result := []model.Client{}
+	page := 1
+	params := map[string]string{
+		"currentPage":     fmt.Sprint(page),
+		"currentPageSize": "50",
+	}
+
+	for {
+		var hres model.Clients
+		if err := ac.http.GetD(ac.getSitesPath("clients"), "", ac.headers, params, &hres); err != nil {
+			return nil, ac.l.E(err)
+		}
+		result = append(result, hres.Data...)
+		page = hres.CurrentPage + 1
+
+		if len(result) >= hres.TotalRows {
+			break
+		} else {
+			params["currentPage"] = fmt.Sprint(page)
+		}
+	}
+
+	return &result, nil
 }
 
 func (ac *Apiclient) getPath(endPoint string) string {
