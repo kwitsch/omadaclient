@@ -22,6 +22,8 @@ type Apiclient struct {
 
 var empty = map[string]string{}
 
+const tokenKey string = "Csrf-Token"
+
 // Creates a new Apiclient
 // url: Omada controller address(example: https://192.168.0.2)
 // siteName: Visible site name(empty string for default site)
@@ -32,6 +34,7 @@ var empty = map[string]string{}
 // return Apiclient instance and possible error
 func New(url, siteName, username, password string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
+	l.V("New")
 	http, err := httpclient.NewClient(url, skipVerify, verbose)
 	if err != nil {
 		return nil, l.E(err)
@@ -47,51 +50,50 @@ func New(url, siteName, username, password string, skipVerify, verbose bool) (*A
 		headers:  map[string]string{},
 	}
 
-	return &result, nil
-}
-
-// Initialize the Apiclient by logging in and fetching necesarry informations
-// return possible error
-func (ac *Apiclient) Start() error {
-	ac.l.V("Start")
-	ai, err := ac.ApiInfo()
+	ai, err := result.ApiInfo()
 	if err != nil {
-		return ac.l.E(err)
+		return nil, result.l.E(err)
 	}
 
 	if ai.OmadacId == "" {
-		return ac.l.E("Couldn't optain Omada ID.")
+		return nil, result.l.E("Couldn't optain Omada ID.")
 	}
 
-	ac.omadaId = ai.OmadacId
+	result.omadaId = ai.OmadacId
 
-	if err := ac.Login(); err != nil {
-		return ac.l.E(err)
-	}
-
-	if len(ac.siteName) == 0 {
-		cu, err := ac.UsersCurrent()
+	if len(result.siteName) != 0 {
+		cu, err := result.UsersCurrent()
 		if err != nil {
-			return ac.l.E(err)
+			return nil, result.l.E(err)
 		}
 
-		ac.l.V("SiteName:", ac.siteName)
+		result.l.V("SiteName:", result.siteName)
 		siteAvailable := false
 		for _, v := range cu.Privilege.Sites {
-			if v.Name == ac.siteName {
-				ac.siteId = v.Key
+			if v.Name == result.siteName {
+				result.siteId = v.Key
 				siteAvailable = true
-				ac.l.V("SiteId:", ac.siteId)
+				result.l.V("SiteId:", result.siteId)
 				break
 			}
 		}
 		if !siteAvailable {
-			return ac.l.E("Site " + ac.siteName + " is not available for user " + ac.username)
+			return nil, result.l.E("Site " + result.siteName + " is not available for user " + result.username)
 		}
 	}
-	ac.l.ReturnSuccess()
 
-	return nil
+	if err := result.EndSession(); err != nil {
+		return nil, result.l.E(err)
+	}
+
+	return &result, nil
+}
+
+func (ac *Apiclient) Close() {
+	ac.l.V("Close")
+	if err := ac.EndSession(); err != nil {
+		ac.l.E(err)
+	}
 }
 
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
@@ -106,10 +108,14 @@ func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	return &result, nil
 }
 
-// Start current session
+// Start session
 // return possible error
-func (ac *Apiclient) Login() error {
-	ac.l.V("Login")
+func (ac *Apiclient) StartSession() error {
+	ac.l.V("StartSession")
+	if ac.HasActiveSession() {
+		return nil
+	}
+
 	bodyData := `{
 		"username": "` + ac.username + `",
 		"password": "` + ac.password + `"
@@ -124,29 +130,57 @@ func (ac *Apiclient) Login() error {
 		return ac.l.E("Couldn't optain Logintoken.")
 	}
 
-	ac.headers = map[string]string{"Csrf-Token": result.Token}
-	ac.l.ReturnSuccess()
+	ac.setToken(result.Token)
 
 	return nil
 }
 
-// Determins if current session is active
-// return sesion state and possible error
-func (ac *Apiclient) LoginStatus() (bool, error) {
-	ac.l.V("LoginStatus")
-	var result model.LoginStatus
-	if err := ac.http.GetD(ac.getPath("loginStatus"), "", ac.headers, empty, &result); err != nil {
-		return false, ac.l.E(err)
+// Determins if is sn sctive session
+// return sesion state
+func (ac *Apiclient) HasActiveSession() bool {
+	if !ac.hasToken() {
+		return false
 	}
 
-	ac.l.Return(result.Login)
-	return result.Login, nil
+	var result model.LoginStatus
+	if err := ac.http.GetD(ac.getPath("loginStatus"), "", ac.headers, empty, &result); err != nil {
+		ac.removeToken()
+		ac.l.E(err)
+		return false
+	}
+
+	if !result.Login {
+		ac.removeToken()
+	}
+
+	return result.Login
+}
+
+// End session
+// return possible error
+func (ac *Apiclient) EndSession() error {
+	ac.l.V("EndSession")
+	if !ac.HasActiveSession() {
+		return nil
+	}
+
+	if _, err := ac.http.Post(ac.getPath("logout"), "", ac.headers, empty); err != nil {
+		return ac.l.E(err)
+	}
+
+	ac.removeToken()
+
+	return nil
 }
 
 // Get user information for current session
 // return user information and possible error
 func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 	ac.l.V("UsersCurrent")
+	if err := ac.ensureLoggedIn(); err != nil {
+		return nil, ac.l.E(err)
+	}
+
 	var result model.UsersCurrent
 	if err := ac.http.GetD(ac.getPath("users/current"), "", ac.headers, empty, &result); err != nil {
 		return nil, ac.l.E(err)
@@ -156,21 +190,14 @@ func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 	return &result, nil
 }
 
-// End current session
-// return possible error
-func (ac *Apiclient) Logout() error {
-	ac.l.V("Logout")
-	if _, err := ac.http.Post(ac.getPath("logout"), "", ac.headers, empty); err != nil {
-		return ac.l.E(err)
-	}
-	ac.l.ReturnSuccess()
-	return nil
-}
-
 // Fetches list of devices for all sites with basic information
 // return list of devices and possible error
 func (ac *Apiclient) Devices() (*[]model.Device, error) {
 	ac.l.V("Devices")
+	if err := ac.ensureLoggedIn(); err != nil {
+		return nil, ac.l.E(err)
+	}
+
 	var result []model.Device
 	if err := ac.http.GetD(ac.getSitesPath("devices"), "", ac.headers, empty, &result); err != nil {
 		return nil, ac.l.E(err)
@@ -200,6 +227,7 @@ func (ac *Apiclient) DevicesDetailed() (*[]model.Device, error) {
 	}
 
 	ac.l.Return(result)
+
 	return &result, nil
 }
 
@@ -207,6 +235,11 @@ func (ac *Apiclient) DevicesDetailed() (*[]model.Device, error) {
 // device: Device to enhance(Type and Mac have to be provided as minimal information)
 // return possible error
 func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
+	ac.l.V("GetDeviceDetail")
+	if err := ac.ensureLoggedIn(); err != nil {
+		return ac.l.E(err)
+	}
+
 	var dtype string
 	switch device.Type {
 	case "switch":
@@ -224,12 +257,18 @@ func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
 	}
 
 	ac.l.Return(*device)
+
 	return nil
 }
 
 // Get all active clients for initialised site
 // return clients list and possible error
 func (ac *Apiclient) Clients() (*[]model.Client, error) {
+	ac.l.V("Clients")
+	if err := ac.ensureLoggedIn(); err != nil {
+		return nil, ac.l.E(err)
+	}
+
 	result := []model.Client{}
 	page := 1
 	params := map[string]string{
@@ -260,4 +299,25 @@ func (ac *Apiclient) getPath(endPoint string) string {
 
 func (ac *Apiclient) getSitesPath(endPoint string) string {
 	return ac.getPath("sites/" + ac.siteId + "/" + endPoint)
+}
+
+func (ac *Apiclient) hasToken() bool {
+	_, ok := ac.headers[tokenKey]
+	return ok
+}
+
+func (ac *Apiclient) setToken(token string) {
+	ac.headers[tokenKey] = token
+}
+
+func (ac *Apiclient) removeToken() {
+	delete(ac.headers, tokenKey)
+}
+
+func (ac *Apiclient) ensureLoggedIn() error {
+	if ac.HasActiveSession() {
+		return nil
+	}
+
+	return ac.StartSession()
 }
