@@ -1,4 +1,4 @@
-package main
+package omadaclient
 
 import (
 	"fmt"
