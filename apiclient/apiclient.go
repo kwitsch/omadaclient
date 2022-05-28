@@ -25,13 +25,16 @@ var empty = map[string]string{}
 const tokenKey string = "Csrf-Token"
 
 // Creates a new Apiclient
-// url: Omada controller address(example: https://192.168.0.2)
-// siteName: Visible site name(empty string for default site)
-// username: Username for login(it is advised to create a seperate api user)
-// password: Password for login
-// skipVerify: Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
-// verbose: Debug logging to console(should only be enabled for debugging scenarios)
-// return Apiclient instance and possible error
+//
+// Parameters:
+//   - `url` : Omada controller address(example: https://192.168.0.2)
+//   - `siteName` : Visible site name(empty string for default site)
+//   - `username` : Username for login(it is advised to create a seperate api user)
+//   - `password` : Password for login
+//   - `skipVerify` : Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
+//   - `erbose` : Debug logging to console(should only be enabled for debugging scenarios)
+//
+// return Apiclient instance or occured error
 func New(url, siteName, username, password string, skipVerify, verbose bool) (*Apiclient, error) {
 	l := log.New("OmadaApi", verbose)
 	l.V("New")
@@ -89,6 +92,7 @@ func New(url, siteName, username, password string, skipVerify, verbose bool) (*A
 	return &result, nil
 }
 
+// Endsession wrapper for the use with defer
 func (ac *Apiclient) Close() {
 	ac.l.V("Close")
 	if err := ac.EndSession(); err != nil {
@@ -96,6 +100,9 @@ func (ac *Apiclient) Close() {
 	}
 }
 
+// Fetch API information
+//
+// return API information or occured error
 func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 	ac.l.V("ApiInfo")
 	var result model.ApiInfo
@@ -109,7 +116,8 @@ func (ac *Apiclient) ApiInfo() (*model.ApiInfo, error) {
 }
 
 // Start session
-// return possible error
+//
+// return occured error
 func (ac *Apiclient) StartSession() error {
 	ac.l.V("StartSession")
 	if ac.HasActiveSession() {
@@ -136,6 +144,7 @@ func (ac *Apiclient) StartSession() error {
 }
 
 // Determins if is sn sctive session
+//
 // return sesion state
 func (ac *Apiclient) HasActiveSession() bool {
 	if !ac.hasToken() {
@@ -157,7 +166,8 @@ func (ac *Apiclient) HasActiveSession() bool {
 }
 
 // End session
-// return possible error
+//
+// return occured error
 func (ac *Apiclient) EndSession() error {
 	ac.l.V("EndSession")
 	if !ac.HasActiveSession() {
@@ -174,7 +184,8 @@ func (ac *Apiclient) EndSession() error {
 }
 
 // Get user information for current session
-// return user information and possible error
+//
+// return user information or occured error
 func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 	ac.l.V("UsersCurrent")
 	if err := ac.ensureLoggedIn(); err != nil {
@@ -191,7 +202,8 @@ func (ac *Apiclient) UsersCurrent() (*model.UsersCurrent, error) {
 }
 
 // Fetches list of devices for all sites with basic information
-// return list of devices and possible error
+//
+// return list of devices or occured error
 func (ac *Apiclient) Devices() (*[]model.Device, error) {
 	ac.l.V("Devices")
 	if err := ac.ensureLoggedIn(); err != nil {
@@ -208,7 +220,8 @@ func (ac *Apiclient) Devices() (*[]model.Device, error) {
 }
 
 // Fetches list of devices for initialized site with enhanced information
-// return list of devices and possible error
+//
+// return list of devices or occured error
 func (ac *Apiclient) DevicesDetailed() (*[]model.Device, error) {
 	ac.l.V("DevicesDetailed")
 	devices, err := ac.Devices()
@@ -232,8 +245,11 @@ func (ac *Apiclient) DevicesDetailed() (*[]model.Device, error) {
 }
 
 // Fetch enhanced information for a provided device and enhance the struct by it
-// device: Device to enhance(Type and Mac have to be provided as minimal information)
-// return possible error
+//
+// Parameters:
+//   - `device` : Device to enhance(Type and Mac have to be provided as minimal information)
+//
+// return occured error
 func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
 	ac.l.V("GetDeviceDetail")
 	if err := ac.ensureLoggedIn(); err != nil {
@@ -262,7 +278,8 @@ func (ac *Apiclient) GetDeviceDetail(device *model.Device) error {
 }
 
 // Get all active clients for initialised site
-// return clients list and possible error
+//
+// return clients list or occured error
 func (ac *Apiclient) Clients() (*[]model.Client, error) {
 	ac.l.V("Clients")
 	if err := ac.ensureLoggedIn(); err != nil {
