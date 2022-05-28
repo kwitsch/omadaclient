@@ -1,7 +1,5 @@
 package model
 
-import "strings"
-
 type Clients struct {
 	Paged
 	Data       []Client `json:"data"`
@@ -61,8 +59,19 @@ type Client struct {
 	NetworkName    string `json:"networkName,omitempty"`
 	Dot1XVlan      int    `json:"dot1xVlan,omitempty"`
 	Port           int    `json:"port,omitempty"`
-}
-
-func (c *Client) GetCleanName() string {
-	return strings.ReplaceAll(c.Name, " ", "")
+	IPSetting      struct {
+		UseFixedAddr bool   `json:"useFixedAddr"`
+		NetID        string `json:"netId"`
+		IP           string `json:"ip"`
+	} `json:"ipSetting"`
+	RateLimit struct {
+		RateLimitID string `json:"rateLimitId"`
+		Enable      bool   `json:"enable"`
+		UpEnable    bool   `json:"upEnable"`
+		UpUnit      int    `json:"upUnit"`
+		UpLimit     int    `json:"upLimit"`
+		DownEnable  bool   `json:"downEnable"`
+		DownUnit    int    `json:"downUnit"`
+		DownLimit   int    `json:"downLimit"`
+	} `json:"rateLimit"`
 }
