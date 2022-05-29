@@ -27,14 +27,16 @@ const tokenKey string = "Csrf-Token"
 // Creates a new SiteClient
 //
 // Parameters:
-//   - `url` : Omada controller address(example: https://192.168.0.2)
-//   - `siteName` : Visible site name(empty string for default site)
-//   - `username` : Username for login(it is advised to create a seperate api user)
-//   - `password` : Password for login
-//   - `skipVerify` : Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
-//   - `erbose` : Debug logging to console(should only be enabled for debugging scenarios)
+//   url : Omada controller address(example: https://192.168.0.2)
+//   siteName : Visible site name(empty string for default site)
+//   username : Username for login(it is advised to create a seperate api user)
+//   password : Password for login
+//   skipVerify : Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
+//   erbose : Debug logging to console(should only be enabled for debugging scenarios)
 //
-// return SiteClient instance or occured error
+// Return:
+//   SiteClient instance
+//   error
 func NewSiteClient(url, siteName, username, password string, skipVerify, verbose bool) (*SiteClient, error) {
 	l := log.New("SiteClient", verbose)
 	l.V("New")
@@ -100,9 +102,12 @@ func (c *SiteClient) Close() {
 	}
 }
 
-// Start session
+// Start a new session
 //
-// return occured error
+// Will be called by api methodes if required
+//
+// Return:
+//   error
 func (c *SiteClient) StartSession() error {
 	c.l.V("StartSession")
 	if c.HasActiveSession() {
@@ -128,9 +133,12 @@ func (c *SiteClient) StartSession() error {
 	return nil
 }
 
-// End session
+// End current session
 //
-// return occured error
+// Will be called by Close
+//
+// Return:
+//   error
 func (c *SiteClient) EndSession() error {
 	c.l.V("EndSession")
 	if !c.HasActiveSession() {
@@ -146,9 +154,10 @@ func (c *SiteClient) EndSession() error {
 	return nil
 }
 
-// Determins if is sn sctive session
+// Determins if client has an active session
 //
-// return sesion state
+// Return:
+//   sesion state
 func (c *SiteClient) HasActiveSession() bool {
 	if !c.hasToken() {
 		return false
@@ -170,7 +179,9 @@ func (c *SiteClient) HasActiveSession() bool {
 
 // Get API information
 //
-// return API information or occured error
+// Return:
+//   API information
+//   error
 func (c *SiteClient) GetApiInfo() (*model.ApiInfo, error) {
 	c.l.V("ApiInfo")
 	var result model.ApiInfo
@@ -185,7 +196,9 @@ func (c *SiteClient) GetApiInfo() (*model.ApiInfo, error) {
 
 // Get user information for current session
 //
-// return user information or occured error
+// Return:
+//   User information
+//   error
 func (c *SiteClient) GetUserInfo() (*model.UsersCurrent, error) {
 	c.l.V("GetUserInfo")
 	if err := c.ensureLoggedIn(); err != nil {
@@ -204,9 +217,11 @@ func (c *SiteClient) GetUserInfo() (*model.UsersCurrent, error) {
 // Get list of devices
 //
 // Parameters:
-//   - `detailed` : get detailed device information
+//   detailed : get detailed device information
 //
-// return list of devices or occured error
+// Return:
+//   Devices list
+//   error
 func (c *SiteClient) GetDevices(detailed bool) (*[]model.Device, error) {
 	c.l.V("Devices")
 	if err := c.ensureLoggedIn(); err != nil {
@@ -238,9 +253,10 @@ func (c *SiteClient) GetDevices(detailed bool) (*[]model.Device, error) {
 // Get enhanced information for a provided device and enhance the struct by it
 //
 // Parameters:
-//   - `device` : Device to enhance(Type and Mac have to be provided as minimal information)
+//   device : Device to enhance(Type and Mac have to be provided as minimal information)
 //
-// return occured error
+// Return:
+//   error
 func (c *SiteClient) GetDeviceDetails(device *model.Device) error {
 	c.l.V("GetDeviceDetails")
 	if err := c.ensureLoggedIn(); err != nil {
@@ -271,9 +287,11 @@ func (c *SiteClient) GetDeviceDetails(device *model.Device) error {
 // Get active clients
 //
 // Parameters:
-//   - `detailed` : get detailed device information
+//   detailed : get detailed device information
 //
-// return clients list or occured error
+// Return:
+//   Client list
+//   error
 func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 	c.l.V("GetClients")
 	if err := c.ensureLoggedIn(); err != nil {
@@ -320,9 +338,10 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 // Get enhanced information for a provided cliend and enhance the struct by it
 //
 // Parameters:
-//   - `client` : Client to enhance(Type and Mac have to be provided as minimal information)
+//   client : Client to enhance(Type and Mac have to be provided as minimal information)
 //
-// return occured error
+// Return:
+//   error
 func (c *SiteClient) GetClientDetails(client *model.Client) error {
 	c.l.V("GetClientDetails")
 	if err := c.ensureLoggedIn(); err != nil {
