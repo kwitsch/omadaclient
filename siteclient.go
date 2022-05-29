@@ -300,11 +300,12 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 
 	clients := []model.Client{}
 	page := 1
+	total := 1
 	params := map[string]string{
 		"currentPageSize": "10",
 	}
 
-	for {
+	for len(clients) < total {
 		params["currentPage"] = fmt.Sprint(page)
 
 		var hres model.Clients
@@ -313,10 +314,7 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 		}
 		clients = append(clients, hres.Data...)
 		page = hres.CurrentPage + 1
-
-		if len(clients) >= hres.TotalRows {
-			break
-		}
+		total = hres.TotalRows
 	}
 
 	result := []model.Client{}
@@ -355,6 +353,48 @@ func (c *SiteClient) GetClientDetails(client *model.Client) error {
 	c.l.Return(*client)
 
 	return nil
+}
+
+// Get networks
+//
+// Return:
+//   Network list
+//   error
+func (c *SiteClient) GetNetworks() (*[]model.Network, error) {
+	c.l.V("GetNetworks")
+	if err := c.ensureLoggedIn(); err != nil {
+		return nil, c.l.E(err)
+	}
+
+	networks := []model.Network{}
+	page := 1
+	total := 1
+	params := map[string]string{
+		"currentPageSize": "10",
+	}
+
+	for len(networks) < total {
+		params["currentPage"] = fmt.Sprint(page)
+
+		var hres model.Networks
+		if err := c.http.GetD(c.getSitesPath("setting/lan/networks"), "", c.headers, params, &hres); err != nil {
+			return nil, c.l.E(err)
+		}
+		networks = append(networks, hres.Data...)
+		page = hres.CurrentPage + 1
+		total = hres.TotalRows
+	}
+
+	result := []model.Network{}
+	for _, d := range networks {
+		if d.Site == c.siteId {
+			result = append(result, d)
+		}
+	}
+
+	c.l.Return(result)
+
+	return &result, nil
 }
 
 func (c *SiteClient) getPath(endPoint string) string {
