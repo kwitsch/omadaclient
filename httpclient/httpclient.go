@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
+	"time"
 
 	"github.com/kwitsch/omadaclient/log"
+	"github.com/kwitsch/omadaclient/utils"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -46,27 +49,29 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 	return &result, nil
 }
 
-func (c *HttpClient) Get(path, body string, headers, query map[string]string) (*[]byte, error) {
-	return c.request("GET", path, body, headers, query)
+func (c *HttpClient) Get(path, body string, headers, params map[string]string) (*[]byte, error) {
+	return c.request("GET", path, body, headers, params)
 }
 
-func (c *HttpClient) GetD(path, body string, headers, query map[string]string, result interface{}) error {
-	res, err := c.Get(path, body, headers, query)
+func (c *HttpClient) GetD(path, body string, headers, params map[string]string, result interface{}) error {
+	res, err := c.Get(path, body, headers, params)
 	if err != nil {
 		return err
 	}
+
 	return c.decode(*res, &result)
 }
 
-func (c *HttpClient) Post(path, body string, headers, query map[string]string) (*[]byte, error) {
-	return c.request("POST", path, body, headers, query)
+func (c *HttpClient) Post(path, body string, headers, params map[string]string) (*[]byte, error) {
+	return c.request("POST", path, body, headers, params)
 }
 
-func (c *HttpClient) PostD(path, body string, headers, query map[string]string, result interface{}) error {
-	res, err := c.Post(path, body, headers, query)
+func (c *HttpClient) PostD(path, body string, headers, params map[string]string, result interface{}) error {
+	res, err := c.Post(path, body, headers, params)
 	if err != nil {
 		return err
 	}
+
 	return c.decode(*res, &result)
 }
 
@@ -75,10 +80,16 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 	if err := json.Unmarshal(data, &aRes); err != nil {
 		return err
 	}
+
+	if !aRes.IsSuccess() {
+		errCode, errMsg := aRes.GetHead()
+		return utils.NewError("Errorcode:", errCode, "-", errMsg)
+	}
+
 	return aRes.GetResult(&result)
 }
 
-func (c *HttpClient) request(methode, path, body string, headers, query map[string]string) (*[]byte, error) {
+func (c *HttpClient) request(methode, path, body string, headers, params map[string]string) (*[]byte, error) {
 	bodyData := []byte(body)
 	url := c.url + path
 	request, err := http.NewRequest(methode, url, bytes.NewBuffer(bodyData))
@@ -92,11 +103,16 @@ func (c *HttpClient) request(methode, path, body string, headers, query map[stri
 		request.Header.Set(k, v)
 	}
 
-	for k, v := range query {
-		request.URL.Query().Set(k, v)
+	query := request.URL.Query()
+	for k, v := range params {
+		query.Add(k, v)
 	}
 
-	c.l.V("Request:", url)
+	query.Add("_", fmt.Sprint(time.Now().Unix()))
+
+	request.URL.RawQuery = query.Encode()
+
+	c.l.V("Request:", request.URL.String())
 
 	resp, err := c.http.Do(request)
 	if err != nil {
