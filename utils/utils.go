@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 )
 
 func NewError(input ...interface{}) error {
@@ -17,18 +16,26 @@ func ToString(params ...interface{}) string {
 		if len(result) > 0 {
 			result += " "
 		}
-		if b, ok := p.([]byte); ok {
-			result += string(b)
-		} else {
-			rv := reflect.ValueOf(p)
-			if rv.Kind() == reflect.Bool ||
-				rv.Kind() == reflect.String ||
-				rv.Kind() == reflect.Int {
-				result += fmt.Sprint(p)
-			} else {
-				if b, err := json.Marshal(p); err == nil {
-					result += string(b)
-				}
+		switch v := p.(type) {
+		case []byte:
+			result += string(v)
+		case string:
+			result += v
+		case int:
+			result += fmt.Sprint(v)
+		case uint:
+			result += fmt.Sprint(v)
+		case bool:
+			result += fmt.Sprint(v)
+		case float32:
+			result += fmt.Sprint(v)
+		case float64:
+			result += fmt.Sprint(v)
+		case error:
+			result += v.Error()
+		default:
+			if b, err := json.Marshal(v); err == nil {
+				result += string(b)
 			}
 		}
 	}
