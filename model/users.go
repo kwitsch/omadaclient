@@ -2,8 +2,8 @@ package model
 
 type UsersCurrent struct {
 	Id        string `json:"id"`
-	Type      int    `json:"type"`
-	RoleType  int    `json:"roleType"`
+	Type      uint64 `json:"type"`
+	RoleType  uint64 `json:"roleType"`
 	Privilege struct {
 		All         bool   `json:"all"`
 		LastVisited string `json:"lastVisited"`

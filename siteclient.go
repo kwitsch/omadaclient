@@ -299,13 +299,13 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 	}
 
 	clients := []model.Client{}
-	page := 1
-	total := 1
+	page := uint(1)
+	total := uint(1)
 	params := map[string]string{
 		"currentPageSize": "10",
 	}
 
-	for len(clients) < total {
+	for uint(len(clients)) < total {
 		params["currentPage"] = fmt.Sprint(page)
 
 		var hres model.Clients
@@ -367,13 +367,13 @@ func (c *SiteClient) GetNetworks() (*[]model.Network, error) {
 	}
 
 	networks := []model.Network{}
-	page := 1
-	total := 1
+	page := uint(1)
+	total := uint(1)
 	params := map[string]string{
 		"currentPageSize": "10",
 	}
 
-	for len(networks) < total {
+	for uint(len(networks)) < total {
 		params["currentPage"] = fmt.Sprint(page)
 
 		var hres model.Networks

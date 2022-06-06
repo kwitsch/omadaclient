@@ -11,7 +11,7 @@ type Network struct {
 	Name              string   `json:"name"`
 	Purpose           string   `json:"purpose"`
 	InterfaceIds      []string `json:"interfaceIds"`
-	Vlan              int      `json:"vlan"`
+	Vlan              uint64   `json:"vlan"`
 	GatewaySubnet     string   `json:"gatewaySubnet"`
 	Domain            string   `json:"domain,omitempty"`
 	IgmpSnoopEnable   bool     `json:"igmpSnoopEnable"`
@@ -33,7 +33,7 @@ type Network struct {
 		Dhcpns       string `json:"dhcpns"`
 		PriDNS       string `json:"priDns"`
 		SndDNS       string `json:"sndDns"`
-		Leasetime    int    `json:"leasetime"`
+		Leasetime    uint64 `json:"leasetime"`
 		Option138    string `json:"option138"`
 	} `json:"dhcpSettings,omitempty"`
 	LanNetworkIpv6Config struct {

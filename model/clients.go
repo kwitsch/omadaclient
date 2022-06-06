@@ -4,20 +4,20 @@ type Clients struct {
 	Paged
 	Data       []Client `json:"data"`
 	ClientStat struct {
-		Total       int `json:"total"`
-		Wireless    int `json:"wireless"`
-		Wired       int `json:"wired"`
-		Num2G       int `json:"num2g"`
-		Num5G       int `json:"num5g"`
-		Num5G2      int `json:"num5g2"`
-		NumUser     int `json:"numUser"`
-		NumGuest    int `json:"numGuest"`
-		Num2GUser   int `json:"num2gUser"`
-		Num5GUser   int `json:"num5gUser"`
-		Num5G2User  int `json:"num5g2User"`
-		Num2GGuest  int `json:"num2gGuest"`
-		Num5GGuest  int `json:"num5gGuest"`
-		Num5G2Guest int `json:"num5g2Guest"`
+		Total       uint `json:"total"`
+		Wireless    uint `json:"wireless"`
+		Wired       uint `json:"wired"`
+		Num2G       uint `json:"num2g"`
+		Num5G       uint `json:"num5g"`
+		Num5G2      uint `json:"num5g2"`
+		NumUser     uint `json:"numUser"`
+		NumGuest    uint `json:"numGuest"`
+		Num2GUser   uint `json:"num2gUser"`
+		Num5GUser   uint `json:"num5gUser"`
+		Num5G2User  uint `json:"num5g2User"`
+		Num2GGuest  uint `json:"num2gGuest"`
+		Num5GGuest  uint `json:"num5gGuest"`
+		Num5G2Guest uint `json:"num5g2Guest"`
 	} `json:"clientStat"`
 }
 
