@@ -27,38 +27,38 @@ type Client struct {
 	HostName       string `json:"hostName,omitempty"`
 	DeviceType     string `json:"deviceType"`
 	IP             string `json:"ip"`
-	ConnectType    int    `json:"connectType"`
+	ConnectType    uint   `json:"connectType"`
 	ConnectDevType string `json:"connectDevType"`
 	Wireless       bool   `json:"wireless"`
 	Ssid           string `json:"ssid,omitempty"`
-	SignalLevel    int    `json:"signalLevel,omitempty"`
-	SignalRank     int    `json:"signalRank,omitempty"`
-	WifiMode       int    `json:"wifiMode,omitempty"`
+	SignalLevel    uint   `json:"signalLevel,omitempty"`
+	SignalRank     uint   `json:"signalRank,omitempty"`
+	WifiMode       uint   `json:"wifiMode,omitempty"`
 	ApName         string `json:"apName,omitempty"`
 	ApMac          string `json:"apMac,omitempty"`
-	RadioID        int    `json:"radioId,omitempty"`
-	Channel        int    `json:"channel,omitempty"`
-	RxRate         int    `json:"rxRate,omitempty"`
-	TxRate         int    `json:"txRate,omitempty"`
+	RadioID        uint   `json:"radioId,omitempty"`
+	Channel        uint   `json:"channel,omitempty"`
+	RxRate         uint   `json:"rxRate,omitempty"`
+	TxRate         uint   `json:"txRate,omitempty"`
 	PowerSave      bool   `json:"powerSave,omitempty"`
-	Rssi           int    `json:"rssi,omitempty"`
-	Activity       int    `json:"activity"`
-	TrafficDown    int64  `json:"trafficDown"`
-	TrafficUp      int64  `json:"trafficUp"`
-	Uptime         int64  `json:"uptime"`
-	LastSeen       int64  `json:"lastSeen"`
-	AuthStatus     int    `json:"authStatus"`
+	Rssi           uint   `json:"rssi,omitempty"`
+	Activity       uint   `json:"activity"`
+	TrafficDown    uint   `json:"trafficDown"`
+	TrafficUp      uint   `json:"trafficUp"`
+	Uptime         uint   `json:"uptime"`
+	LastSeen       uint   `json:"lastSeen"`
+	AuthStatus     uint   `json:"authStatus"`
 	Guest          bool   `json:"guest"`
 	Active         bool   `json:"active"`
 	Manager        bool   `json:"manager"`
-	DownPacket     int    `json:"downPacket"`
-	UpPacket       int    `json:"upPacket"`
+	DownPacket     uint   `json:"downPacket"`
+	UpPacket       uint   `json:"upPacket"`
 	SwitchMac      string `json:"switchMac,omitempty"`
 	SwitchName     string `json:"switchName,omitempty"`
-	Vid            int    `json:"vid,omitempty"`
+	Vid            uint   `json:"vid,omitempty"`
 	NetworkName    string `json:"networkName,omitempty"`
-	Dot1XVlan      int    `json:"dot1xVlan,omitempty"`
-	Port           int    `json:"port,omitempty"`
+	Dot1XVlan      uint   `json:"dot1xVlan,omitempty"`
+	Port           uint   `json:"port,omitempty"`
 	IPSetting      struct {
 		UseFixedAddr bool   `json:"useFixedAddr"`
 		NetID        string `json:"netId"`
@@ -68,10 +68,10 @@ type Client struct {
 		RateLimitID string `json:"rateLimitId"`
 		Enable      bool   `json:"enable"`
 		UpEnable    bool   `json:"upEnable"`
-		UpUnit      int    `json:"upUnit"`
-		UpLimit     int    `json:"upLimit"`
+		UpUnit      uint   `json:"upUnit"`
+		UpLimit     uint   `json:"upLimit"`
 		DownEnable  bool   `json:"downEnable"`
-		DownUnit    int    `json:"downUnit"`
-		DownLimit   int    `json:"downLimit"`
+		DownUnit    uint   `json:"downUnit"`
+		DownLimit   uint   `json:"downLimit"`
 	} `json:"rateLimit"`
 }
