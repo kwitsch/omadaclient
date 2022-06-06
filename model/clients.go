@@ -43,16 +43,16 @@ type Client struct {
 	PowerSave      bool   `json:"powerSave,omitempty"`
 	Rssi           int    `json:"rssi,omitempty"`
 	Activity       uint   `json:"activity"`
-	TrafficDown    uint   `json:"trafficDown"`
-	TrafficUp      uint   `json:"trafficUp"`
-	Uptime         uint   `json:"uptime"`
-	LastSeen       uint   `json:"lastSeen"`
+	TrafficDown    uint64 `json:"trafficDown"`
+	TrafficUp      uint64 `json:"trafficUp"`
+	Uptime         uint64 `json:"uptime"`
+	LastSeen       uint64 `json:"lastSeen"`
 	AuthStatus     uint   `json:"authStatus"`
 	Guest          bool   `json:"guest"`
 	Active         bool   `json:"active"`
 	Manager        bool   `json:"manager"`
-	DownPacket     uint   `json:"downPacket"`
-	UpPacket       uint   `json:"upPacket"`
+	DownPacket     uint64 `json:"downPacket"`
+	UpPacket       uint64 `json:"upPacket"`
 	SwitchMac      string `json:"switchMac,omitempty"`
 	SwitchName     string `json:"switchName,omitempty"`
 	Vid            uint   `json:"vid,omitempty"`
