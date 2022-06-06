@@ -43,9 +43,9 @@ type Client struct {
 	PowerSave      bool   `json:"powerSave,omitempty"`
 	Rssi           int    `json:"rssi,omitempty"`
 	Activity       int    `json:"activity"`
-	TrafficDown    int    `json:"trafficDown"`
-	TrafficUp      int    `json:"trafficUp"`
-	Uptime         int    `json:"uptime"`
+	TrafficDown    int64  `json:"trafficDown"`
+	TrafficUp      int64  `json:"trafficUp"`
+	Uptime         int64  `json:"uptime"`
 	LastSeen       int64  `json:"lastSeen"`
 	AuthStatus     int    `json:"authStatus"`
 	Guest          bool   `json:"guest"`
