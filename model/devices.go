@@ -39,7 +39,7 @@ type Device struct {
 		Port              uint64 `json:"port"`
 		Name              string `json:"name"`
 		Type              uint64 `json:"type"`
-		Mode              uint64 `json:"mode"`
+		Mode              int64  `json:"mode"`
 		Status            uint64 `json:"status"`
 		Rx                uint64 `json:"rx"`
 		RxPkt             uint64 `json:"rxPkt"`
