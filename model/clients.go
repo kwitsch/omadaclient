@@ -41,7 +41,7 @@ type Client struct {
 	RxRate         uint   `json:"rxRate,omitempty"`
 	TxRate         uint   `json:"txRate,omitempty"`
 	PowerSave      bool   `json:"powerSave,omitempty"`
-	Rssi           uint   `json:"rssi,omitempty"`
+	Rssi           int    `json:"rssi,omitempty"`
 	Activity       uint   `json:"activity"`
 	TrafficDown    uint   `json:"trafficDown"`
 	TrafficUp      uint   `json:"trafficUp"`
