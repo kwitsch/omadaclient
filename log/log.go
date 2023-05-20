@@ -32,12 +32,15 @@ func (l *Log) V(params ...interface{}) {
 
 func (l *Log) E(param interface{}) error {
 	var err error
+
 	if e, ok := param.(error); ok {
 		err = e
 	} else {
 		err = utils.NewError(param)
 	}
+
 	l.M("Error:", err)
+
 	return err
 }
 

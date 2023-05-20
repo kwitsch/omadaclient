@@ -22,28 +22,34 @@ type SiteClient struct {
 
 var empty = map[string]string{}
 
+//nolint:gosec // key refers to key/value pair and contains no security information
 const tokenKey string = "Csrf-Token"
 
 // Creates a new SiteClient
 //
 // Parameters:
-//   url : Omada controller address(example: https://192.168.0.2)
-//   siteName : Visible site name(empty string for default site)
-//   username : Username for login(it is advised to create a seperate api user)
-//   password : Password for login
-//   skipVerify : Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
-//   erbose : Debug logging to console(should only be enabled for debugging scenarios)
+//
+//	url : Omada controller address(example: https://192.168.0.2)
+//	siteName : Visible site name(empty string for default site)
+//	username : Username for login(it is advised to create a separate api user)
+//	password : Password for login
+//	skipVerify : Ignore SSL errors(necessary for ip addresses as url or selfsigned certificates)
+//	erbose : Debug logging to console(should only be enabled for debugging scenarios)
 //
 // Return:
-//   SiteClient instance
-//   error
+//
+//	SiteClient instance
+//	error
 func NewSiteClient(url, siteName, username, password string, skipVerify, verbose bool) (*SiteClient, error) {
 	l := log.New("SiteClient", verbose)
+
 	l.V("New")
+
 	http, err := httpclient.NewClient(url, skipVerify, verbose)
 	if err != nil {
 		return nil, l.E(err)
 	}
+
 	result := SiteClient{
 		url:      url,
 		siteName: siteName,
@@ -73,15 +79,21 @@ func NewSiteClient(url, siteName, username, password string, skipVerify, verbose
 		}
 
 		result.l.V("SiteName:", result.siteName)
+
 		siteAvailable := false
+
 		for _, v := range cu.Privilege.Sites {
 			if v.Name == result.siteName {
 				result.siteId = v.Key
+
 				siteAvailable = true
+
 				result.l.V("SiteId:", result.siteId)
+
 				break
 			}
 		}
+
 		if !siteAvailable {
 			return nil, result.l.E("Site " + result.siteName + " is not available for user " + result.username)
 		}
@@ -97,19 +109,22 @@ func NewSiteClient(url, siteName, username, password string, skipVerify, verbose
 // SiteClient finalizer
 func (c *SiteClient) Close() {
 	c.l.V("Close")
+
 	if err := c.EndSession(); err != nil {
-		c.l.E(err)
+		_ = c.l.E(err)
 	}
 }
 
 // Start a new session
 //
-// Will be called by api methodes if required
+// # Will be called by api methodes if required
 //
 // Return:
-//   error
+//
+//	error
 func (c *SiteClient) StartSession() error {
 	c.l.V("StartSession")
+
 	if c.HasActiveSession() {
 		return nil
 	}
@@ -135,12 +150,14 @@ func (c *SiteClient) StartSession() error {
 
 // End current session
 //
-// Will be called by Close
+// # Will be called by Close
 //
 // Return:
-//   error
+//
+//	error
 func (c *SiteClient) EndSession() error {
 	c.l.V("EndSession")
+
 	if !c.HasActiveSession() {
 		return nil
 	}
@@ -154,10 +171,11 @@ func (c *SiteClient) EndSession() error {
 	return nil
 }
 
-// Determins if client has an active session
+// Determines if client has an active session
 //
 // Return:
-//   sesion state
+//
+//	sesion state
 func (c *SiteClient) HasActiveSession() bool {
 	if !c.hasToken() {
 		return false
@@ -166,7 +184,8 @@ func (c *SiteClient) HasActiveSession() bool {
 	var result model.LoginStatus
 	if err := c.http.GetD(c.getPath("loginStatus"), "", c.headers, empty, &result); err != nil {
 		c.removeToken()
-		c.l.E(err)
+		_ = c.l.E(err)
+
 		return false
 	}
 
@@ -180,11 +199,14 @@ func (c *SiteClient) HasActiveSession() bool {
 // Get API information
 //
 // Return:
-//   API information
-//   error
+//
+//	API information
+//	error
 func (c *SiteClient) GetApiInfo() (*model.ApiInfo, error) {
 	c.l.V("ApiInfo")
+
 	var result model.ApiInfo
+
 	if err := c.http.GetD("/api/info", "", c.headers, empty, &result); err != nil {
 		return nil, c.l.E(err)
 	}
@@ -197,10 +219,12 @@ func (c *SiteClient) GetApiInfo() (*model.ApiInfo, error) {
 // Get user information for current session
 //
 // Return:
-//   User information
-//   error
+//
+//	User information
+//	error
 func (c *SiteClient) GetUserInfo() (*model.UsersCurrent, error) {
 	c.l.V("GetUserInfo")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return nil, c.l.E(err)
 	}
@@ -211,19 +235,23 @@ func (c *SiteClient) GetUserInfo() (*model.UsersCurrent, error) {
 	}
 
 	c.l.Return(result)
+
 	return &result, nil
 }
 
 // Get list of devices
 //
 // Parameters:
-//   detailed : get detailed device information
+//
+//	detailed : get detailed device information
 //
 // Return:
-//   Devices list
-//   error
+//
+//	Devices list
+//	error
 func (c *SiteClient) GetDevices(detailed bool) (*[]model.Device, error) {
 	c.l.V("Devices")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return nil, c.l.E(err)
 	}
@@ -234,13 +262,15 @@ func (c *SiteClient) GetDevices(detailed bool) (*[]model.Device, error) {
 	}
 
 	result := []model.Device{}
-	for _, d := range devices {
+
+	for i, d := range devices {
 		if d.Site == c.siteId {
 			if detailed {
-				if err := c.GetDeviceDetails(&d); err != nil {
+				if err := c.GetDeviceDetails(&devices[i]); err != nil {
 					return nil, c.l.E(err)
 				}
 			}
+
 			result = append(result, d)
 		}
 	}
@@ -253,17 +283,21 @@ func (c *SiteClient) GetDevices(detailed bool) (*[]model.Device, error) {
 // Get enhanced information for a provided device and enhance the struct by it
 //
 // Parameters:
-//   device : Device to enhance(Type and Mac have to be provided as minimal information)
+//
+//	device : Device to enhance(Type and Mac have to be provided as minimal information)
 //
 // Return:
-//   error
+//
+//	error
 func (c *SiteClient) GetDeviceDetails(device *model.Device) error {
 	c.l.V("GetDeviceDetails")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return c.l.E(err)
 	}
 
 	var dtype string
+
 	switch device.Type {
 	case "switch":
 		dtype = "switches"
@@ -287,13 +321,16 @@ func (c *SiteClient) GetDeviceDetails(device *model.Device) error {
 // Get active clients
 //
 // Parameters:
-//   detailed : get detailed device information
+//
+//	detailed : get detailed device information
 //
 // Return:
-//   Client list
-//   error
+//
+//	Client list
+//	error
 func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 	c.l.V("GetClients")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return nil, c.l.E(err)
 	}
@@ -312,20 +349,22 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 		if err := c.http.GetD(c.getSitesPath("clients"), "", c.headers, params, &hres); err != nil {
 			return nil, c.l.E(err)
 		}
+
 		clients = append(clients, hres.Data...)
 		page = hres.CurrentPage + 1
 		total = hres.TotalRows
 	}
 
 	result := []model.Client{}
-	for _, d := range clients {
+
+	for i, d := range clients {
 		if detailed {
-			if err := c.GetClientDetails(&d); err != nil {
+			if err := c.GetClientDetails(&clients[i]); err != nil {
 				return nil, c.l.E(err)
 			}
 		}
-		result = append(result, d)
 
+		result = append(result, d)
 	}
 
 	c.l.Return(result)
@@ -336,12 +375,15 @@ func (c *SiteClient) GetClients(detailed bool) (*[]model.Client, error) {
 // Get enhanced information for a provided cliend and enhance the struct by it
 //
 // Parameters:
-//   client : Client to enhance(Type and Mac have to be provided as minimal information)
+//
+//	client : Client to enhance(Type and Mac have to be provided as minimal information)
 //
 // Return:
-//   error
+//
+//	error
 func (c *SiteClient) GetClientDetails(client *model.Client) error {
 	c.l.V("GetClientDetails")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return c.l.E(err)
 	}
@@ -358,10 +400,12 @@ func (c *SiteClient) GetClientDetails(client *model.Client) error {
 // Get networks
 //
 // Return:
-//   Network list
-//   error
+//
+//	Network list
+//	error
 func (c *SiteClient) GetNetworks() (*[]model.Network, error) {
 	c.l.V("GetNetworks")
+
 	if err := c.ensureLoggedIn(); err != nil {
 		return nil, c.l.E(err)
 	}
@@ -380,12 +424,15 @@ func (c *SiteClient) GetNetworks() (*[]model.Network, error) {
 		if err := c.http.GetD(c.getSitesPath("setting/lan/networks"), "", c.headers, params, &hres); err != nil {
 			return nil, c.l.E(err)
 		}
+
 		networks = append(networks, hres.Data...)
+
 		page = hres.CurrentPage + 1
 		total = hres.TotalRows
 	}
 
 	result := []model.Network{}
+
 	for _, d := range networks {
 		if d.Site == c.siteId {
 			result = append(result, d)
@@ -407,6 +454,7 @@ func (c *SiteClient) getSitesPath(endPoint string) string {
 
 func (c *SiteClient) hasToken() bool {
 	_, ok := c.headers[tokenKey]
+
 	return ok
 }
 

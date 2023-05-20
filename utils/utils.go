@@ -16,6 +16,7 @@ func ToString(params ...interface{}) string {
 		if len(result) > 0 {
 			result += " "
 		}
+
 		switch v := p.(type) {
 		case []byte:
 			result += string(v)

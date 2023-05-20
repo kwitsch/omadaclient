@@ -36,6 +36,7 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 		Jar: cookies,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				//nolint:gosec // needs to be disabled for local networks
 				InsecureSkipVerify: skipVerify,
 			},
 		},
@@ -46,6 +47,7 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 		url:  url,
 		l:    l,
 	}
+
 	return &result, nil
 }
 
@@ -83,6 +85,7 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 
 	if !aRes.IsSuccess() {
 		errCode, errMsg := aRes.GetHead()
+
 		return utils.NewError("Errorcode:", errCode, "-", errMsg)
 	}
 
@@ -92,6 +95,7 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 func (c *HttpClient) request(methode, path, body string, headers, params map[string]string) (*[]byte, error) {
 	bodyData := []byte(body)
 	url := c.url + path
+
 	request, err := http.NewRequest(methode, url, bytes.NewBuffer(bodyData))
 	if err != nil {
 		return nil, err
