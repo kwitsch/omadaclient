@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -32,20 +32,22 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 		return nil, err
 	}
 
-	http := http.Client{
+	httpc := http.Client{
 		Jar: cookies,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				//nolint:gosec // needs to be disabled for local networks
 				InsecureSkipVerify: skipVerify,
 			},
 		},
 	}
 
 	result := HttpClient{
-		http: &http,
+		http: &httpc,
 		url:  url,
 		l:    l,
 	}
+
 	return &result, nil
 }
 
@@ -83,6 +85,7 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 
 	if !aRes.IsSuccess() {
 		errCode, errMsg := aRes.GetHead()
+
 		return utils.NewError("Errorcode:", errCode, "-", errMsg)
 	}
 
@@ -92,6 +95,7 @@ func (c *HttpClient) decode(data []byte, result interface{}) error {
 func (c *HttpClient) request(methode, path, body string, headers, params map[string]string) (*[]byte, error) {
 	bodyData := []byte(body)
 	url := c.url + path
+
 	request, err := http.NewRequest(methode, url, bytes.NewBuffer(bodyData))
 	if err != nil {
 		return nil, err
@@ -121,7 +125,7 @@ func (c *HttpClient) request(methode, path, body string, headers, params map[str
 
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

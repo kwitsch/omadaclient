@@ -15,7 +15,7 @@ func (ar ApiResult) GetHead() (int, string) {
 }
 
 func (ar ApiResult) IsSuccess() bool {
-	return (ar.ErrorCode == 0)
+	return ar.ErrorCode == 0
 }
 
 func (ar ApiResult) GetResult(res interface{}) error {

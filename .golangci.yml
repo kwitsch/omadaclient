@@ -1,0 +1,73 @@
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - gofmt
+    - goimports
+    - gomnd
+    - gomodguard
+    - gosec
+    - gosimple
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - staticcheck
+    - tenv
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - whitespace
+    - wsl
+  disable:
+    - noctx
+    - contextcheck
+    - scopelint
+    - structcheck
+    - deadcode
+    - varcheck
+    - forbidigo
+    - gochecknoinits
+    - gochecknoglobals
+    - revive
+    - stylecheck
+    - funlen
+
+  disable-all: false
+  presets:
+    - bugs
+    - unused
+  fast: false
+
+run:
+  skip-dirs:
+    - test
