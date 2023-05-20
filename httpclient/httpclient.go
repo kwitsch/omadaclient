@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -32,7 +32,7 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 		return nil, err
 	}
 
-	http := http.Client{
+	httpc := http.Client{
 		Jar: cookies,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -42,7 +42,7 @@ func NewClient(url string, skipVerify, verbose bool) (*HttpClient, error) {
 	}
 
 	result := HttpClient{
-		http: &http,
+		http: &httpc,
 		url:  url,
 		l:    l,
 	}
@@ -121,7 +121,7 @@ func (c *HttpClient) request(methode, path, body string, headers, params map[str
 
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
