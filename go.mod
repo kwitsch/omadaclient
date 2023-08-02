@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/golangci/golangci-lint v1.53.1
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.13.0
 	mvdan.cc/gofumpt v0.5.0
 )
 
