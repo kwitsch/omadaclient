@@ -1,0 +1,1119 @@
+openapi: "3.0.3"
+info:
+  title: TP-Link Omada Open API
+  description: |
+    Official REST API for TP-Link Omada SDN controllers.
+    Uses OAuth 2.0 Client Credentials flow for authentication.
+    Base URL: https://<controller>:<port>
+  version: "1.0.0"
+  contact:
+    url: https://www.tp-link.com/en/omada-sdn/
+
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: "https://localhost:8043"
+        description: Omada controller base URL
+
+tags:
+  - name: auth
+    description: OAuth2 token management
+  - name: sites
+    description: Site management
+  - name: devices
+    description: Device management
+  - name: clients
+    description: Client management
+  - name: networks
+    description: Network settings
+  - name: wireless
+    description: Wireless (WLAN/SSID) settings
+  - name: ports
+    description: Switch port management
+
+security:
+  - AccessToken: []
+
+paths:
+  /openapi/authorize/token:
+    post:
+      tags: [auth]
+      summary: Obtain access token
+      description: |
+        Exchange client credentials for an access/refresh token pair.
+        For client_credentials grant: send omadacId, client_id, client_secret in body.
+        For refresh_token grant: send all parameters in query string only.
+      operationId: getToken
+      security: []
+      parameters:
+        - name: grant_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [client_credentials, refresh_token]
+        - name: client_id
+          in: query
+          schema:
+            type: string
+          description: Required for refresh_token grant
+        - name: client_secret
+          in: query
+          schema:
+            type: string
+          description: Required for refresh_token grant
+        - name: refresh_token
+          in: query
+          schema:
+            type: string
+          description: Required for refresh_token grant
+      requestBody:
+        description: Required for client_credentials grant
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: Token response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites:
+    get:
+      tags: [sites]
+      summary: List sites
+      operationId: getSites
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of sites
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/devices:
+    get:
+      tags: [devices]
+      summary: List devices in a site
+      operationId: getDevices
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of devices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/devices/uplink-info:
+    post:
+      tags: [devices]
+      summary: Get uplink information for devices
+      operationId: getDevicesUplinkInfo
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceMacsRequest"
+      responses:
+        "200":
+          description: List of device uplink info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/devices/stats:
+    post:
+      tags: [devices]
+      summary: Get per-band client statistics for devices
+      operationId: getDevicesStats
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceMacsRequest"
+      responses:
+        "200":
+          description: List of device statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/cmd/reboot:
+    post:
+      tags: [devices]
+      summary: Reboot a device
+      operationId: rebootDevice
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceMacRequest"
+      responses:
+        "200":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/devices/locate:
+    post:
+      tags: [devices]
+      summary: Locate a device (flash LEDs)
+      operationId: locateDevice
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocateDeviceRequest"
+      responses:
+        "200":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/firmware:
+    get:
+      tags: [devices]
+      summary: Get firmware information for a device
+      operationId: getDeviceFirmware
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: deviceMac
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Firmware information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/firmware/upgrade:
+    post:
+      tags: [devices]
+      summary: Start online firmware upgrade for a device
+      operationId: startDeviceFirmwareUpgrade
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceMacRequest"
+      responses:
+        "200":
+          description: Upgrade started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/eaps/{apMac}/radios:
+    get:
+      tags: [devices]
+      summary: Get radio information for an access point
+      operationId: getApRadios
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: apMac
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: AP radio information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/gateways/{gatewayMac}:
+    get:
+      tags: [devices]
+      summary: Get gateway device information
+      operationId: getGateway
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: gatewayMac
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Gateway information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/gateways/{gatewayMac}/wan/status:
+    get:
+      tags: [devices]
+      summary: Get WAN port status of a gateway
+      operationId: getGatewayWanStatus
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: gatewayMac
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: WAN status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v2/{omadacId}/sites/{siteId}/clients:
+    post:
+      tags: [clients]
+      summary: List clients in a site
+      operationId: getClients
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientsRequest"
+      responses:
+        "200":
+          description: Paged list of clients
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/clients/{clientMac}:
+    patch:
+      tags: [clients]
+      summary: Update client settings (e.g. block/unblock)
+      operationId: updateClient
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: clientMac
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientUpdateRequest"
+      responses:
+        "200":
+          description: Client updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/clients/{clientMac}/cmd/reconnect:
+    post:
+      tags: [clients]
+      summary: Reconnect a wireless client
+      operationId: reconnectClient
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: clientMac
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Command accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/applicationControl/applications:
+    get:
+      tags: [clients]
+      summary: List DPI applications
+      operationId: getApplications
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of applications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/dashboard/specificClientInfo/{clientMac}:
+    get:
+      tags: [clients]
+      summary: Get per-application traffic for a client
+      operationId: getClientAppTraffic
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: clientMac
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Start timestamp (Unix seconds)
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: End timestamp (Unix seconds)
+      responses:
+        "200":
+          description: Application traffic data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/dashboard/poe-usage:
+    get:
+      tags: [ports]
+      summary: Get PoE usage summary for all switches
+      operationId: getPoeUsage
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      responses:
+        "200":
+          description: PoE usage summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/switches/ports/poe-info:
+    get:
+      tags: [ports]
+      summary: Get PoE information for all switch ports
+      operationId: getSwitchPortsPoeInfo
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of switch port PoE info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/switches/{switchMac}/ports/{portId}:
+    patch:
+      tags: [ports]
+      summary: Update switch port settings (profile override)
+      operationId: updateSwitchPort
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: switchMac
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: portId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortProfileOverrideRequest"
+      responses:
+        "200":
+          description: Port updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/switches/{switchMac}/ports/{portId}/poe:
+    patch:
+      tags: [ports]
+      summary: Update PoE mode for a switch port
+      operationId: updateSwitchPortPoe
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: switchMac
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: portId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortPoeRequest"
+      responses:
+        "200":
+          description: PoE mode updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/setting/led:
+    get:
+      tags: [networks]
+      summary: Get site LED setting
+      operationId: getLedSetting
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      responses:
+        "200":
+          description: LED setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+    patch:
+      tags: [networks]
+      summary: Update site LED setting
+      operationId: updateLedSetting
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedSettingRequest"
+      responses:
+        "200":
+          description: LED setting updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/setting/wlans:
+    get:
+      tags: [wireless]
+      summary: List WLANs in a site
+      operationId: getWlans
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of WLANs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/setting/wlans/{wlanId}/ssids:
+    get:
+      tags: [wireless]
+      summary: List SSIDs in a WLAN
+      operationId: getSsids
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: wlanId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+      responses:
+        "200":
+          description: Paged list of SSIDs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/setting/wlans/{wlanId}/ssids/{ssidId}:
+    get:
+      tags: [wireless]
+      summary: Get SSID details
+      operationId: getSsidDetail
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: wlanId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ssidId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSID details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+    patch:
+      tags: [wireless]
+      summary: Update SSID basic configuration
+      operationId: updateSsid
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+        - name: wlanId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ssidId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SsidUpdateRequest"
+      responses:
+        "200":
+          description: SSID updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /openapi/v1/{omadacId}/sites/{siteId}/wlans/cmd/optimization:
+    post:
+      tags: [wireless]
+      summary: Start site-wide WLAN optimization
+      operationId: startWlanOptimization
+      parameters:
+        - $ref: "#/components/parameters/omadacId"
+        - $ref: "#/components/parameters/siteId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WlanOptimizationRequest"
+      responses:
+        "200":
+          description: Optimization started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+components:
+  securitySchemes:
+    AccessToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Format: AccessToken=<token>"
+
+  parameters:
+    omadacId:
+      name: omadacId
+      in: path
+      required: true
+      description: Omada controller ID
+      schema:
+        type: string
+    siteId:
+      name: siteId
+      in: path
+      required: true
+      description: Site ID
+      schema:
+        type: string
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 100
+        minimum: 1
+        maximum: 1000
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        errorCode:
+          type: integer
+          description: 0 on success, negative on error
+        msg:
+          type: string
+          description: Human-readable message
+        result:
+          description: Response payload (varies by endpoint)
+      required:
+        - errorCode
+
+    PagedResult:
+      type: object
+      properties:
+        totalRows:
+          type: integer
+        currentPage:
+          type: integer
+        currentSize:
+          type: integer
+        data:
+          type: array
+          items: {}
+
+    TokenRequest:
+      type: object
+      properties:
+        omadacId:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+      required:
+        - omadacId
+        - client_id
+        - client_secret
+
+    TokenResult:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+        expiresIn:
+          type: integer
+          description: Seconds until expiry
+
+    Site:
+      type: object
+      properties:
+        siteId:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+        timeZone:
+          type: string
+        scenario:
+          type: string
+        type:
+          type: integer
+
+    Device:
+      type: object
+      properties:
+        mac:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          description: "ap | switch | gateway"
+        model:
+          type: string
+        modelVersion:
+          type: string
+        firmwareVersion:
+          type: string
+        status:
+          type: integer
+        statusCategory:
+          type: integer
+        ip:
+          type: string
+        uptime:
+          type: integer
+          format: int64
+        cpuUtil:
+          type: integer
+        memUtil:
+          type: integer
+        clientNum:
+          type: integer
+        needUpgrade:
+          type: boolean
+
+    DeviceUplinkInfo:
+      type: object
+      properties:
+        mac:
+          type: string
+        uplinkDeviceMac:
+          type: string
+        uplinkDeviceName:
+          type: string
+        uplinkDevicePort:
+          type: integer
+        linkSpeed:
+          type: integer
+        duplex:
+          type: integer
+
+    Client:
+      type: object
+      properties:
+        mac:
+          type: string
+        name:
+          type: string
+        hostName:
+          type: string
+        ip:
+          type: string
+        ipv6:
+          type: string
+        connectType:
+          type: integer
+        connectDevType:
+          type: string
+        wireless:
+          type: boolean
+        ssid:
+          type: string
+        signalLevel:
+          type: integer
+        rssi:
+          type: integer
+        snr:
+          type: integer
+        rxRate:
+          type: integer
+        txRate:
+          type: integer
+        uptime:
+          type: integer
+          format: int64
+        activity:
+          type: integer
+        trafficDown:
+          type: integer
+          format: int64
+        trafficUp:
+          type: integer
+          format: int64
+        blocked:
+          type: boolean
+        apMac:
+          type: string
+        apName:
+          type: string
+        switchMac:
+          type: string
+        switchName:
+          type: string
+        vid:
+          type: integer
+        networkName:
+          type: string
+        powerSave:
+          type: boolean
+
+    Application:
+      type: object
+      properties:
+        applicationId:
+          type: string
+        applicationName:
+          type: string
+        description:
+          type: string
+        family:
+          type: string
+
+    FirmwareInfo:
+      type: object
+      properties:
+        mac:
+          type: string
+        deviceType:
+          type: string
+        currentVersion:
+          type: string
+        latestVersion:
+          type: string
+        needUpgrade:
+          type: boolean
+        releaseNote:
+          type: string
+
+    LedSetting:
+      type: object
+      properties:
+        enable:
+          type: boolean
+
+    PoePortInfo:
+      type: object
+      properties:
+        port:
+          type: integer
+        switchMac:
+          type: string
+        switchName:
+          type: string
+        portName:
+          type: string
+        supportPoe:
+          type: boolean
+        poe:
+          type: boolean
+        power:
+          type: number
+          format: double
+        voltage:
+          type: number
+          format: double
+        current:
+          type: number
+          format: double
+        poeStatus:
+          type: integer
+        pdClass:
+          type: integer
+
+    PoeUsage:
+      type: object
+      properties:
+        mac:
+          type: string
+        name:
+          type: string
+        portNum:
+          type: integer
+        totalPowerUsed:
+          type: number
+          format: double
+        totalPercentUsed:
+          type: number
+          format: double
+        totalPower:
+          type: number
+          format: double
+
+    Wlan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ssidNum:
+          type: integer
+
+    Ssid:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        wlanId:
+          type: string
+        band:
+          type: integer
+        enable:
+          type: boolean
+        security:
+          type: string
+        hidden:
+          type: boolean
+        guestNetwork:
+          type: boolean
+        vlanId:
+          type: integer
+
+    DeviceMacsRequest:
+      type: object
+      properties:
+        deviceMacs:
+          type: array
+          items:
+            type: string
+      required:
+        - deviceMacs
+
+    DeviceMacRequest:
+      type: object
+      properties:
+        mac:
+          type: string
+      required:
+        - mac
+
+    LocateDeviceRequest:
+      type: object
+      properties:
+        mac:
+          type: string
+        type:
+          type: string
+          description: Device type (ap | switch | gateway)
+      required:
+        - mac
+        - type
+
+    ClientsRequest:
+      type: object
+      properties:
+        page:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 100
+        scope:
+          type: integer
+          description: "0: all, 1: online, 2: offline, 3: blocked"
+          default: 1
+        filters:
+          type: object
+          additionalProperties: true
+
+    ClientUpdateRequest:
+      type: object
+      properties:
+        blocked:
+          type: boolean
+
+    PortProfileOverrideRequest:
+      type: object
+      properties:
+        profileId:
+          type: string
+        profileOverrideEnable:
+          type: boolean
+
+    PortPoeRequest:
+      type: object
+      properties:
+        poe:
+          type: boolean
+          description: Enable or disable PoE on the port
+      required:
+        - poe
+
+    LedSettingRequest:
+      type: object
+      properties:
+        enable:
+          type: boolean
+      required:
+        - enable
+
+    SsidUpdateRequest:
+      type: object
+      properties:
+        enable:
+          type: boolean
+        name:
+          type: string
+        security:
+          type: string
+        password:
+          type: string
+        hidden:
+          type: boolean
+
+    WlanOptimizationRequest:
+      type: object
+      properties:
+        strategy:
+          type: integer
+          default: 0

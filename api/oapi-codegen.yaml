@@ -1,0 +1,10 @@
+# oapi-codegen configuration for the Omada Open API
+# See: https://github.com/oapi-codegen/oapi-codegen
+package: openapi
+generate:
+  models: true
+  client: true
+  embedded-spec: false
+output: ../openapi/openapi.gen.go
+output-options:
+  skip-prune: false
