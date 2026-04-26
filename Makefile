@@ -5,8 +5,9 @@ GOARCH?=$(shell go env GOARCH)
 GOARM?=$(shell go env GOARM)
 
 
-generate: ## run go generate
-	go generate ./..
+generate: ## run go generate and regenerate openapi client from api/openapi.yaml
+	go generate ./...
+	cd api && go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config oapi-codegen.yaml openapi.yaml
 
 fmt: ## gofmt and goimports all go files
 	go run mvdan.cc/gofumpt -l -w -extra .
